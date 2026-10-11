@@ -3,47 +3,34 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Barnacle · Field review</title>
+    <title>Barnacle counter — Count review</title>
     <link rel="stylesheet" href="style.css" />
     <script src="core.js" defer></script>
     <script src="app.js" defer></script>
   </head>
   <body>
     <header>
-      <a class="brand" href="./"
-        ><span class="brand-mark">◉</span> barnacle<span class="brand-label"
-          >FIELD REVIEW</span
-        ></a
-      ><span class="header-note">A scientist stays in the loop.</span
-      ><a href="../README.md" class="readme">About the experiment ↗</a>
+      <a class="brand" href="./">Barnacle counter</a>
+      <span class="header-note">DALI · Data challenge</span>
+      <a href="../README.md" class="readme">Project notes</a>
+      <button id="export-json" class="header-download">Download review</button>
     </header>
     <main>
       <section class="intro">
-        <div>
-          <div class="eyebrow">DALI DATA CHALLENGE · RESEARCH PROTOTYPE</div>
-          <h1>A faster starting point.<br />A count you can check.</h1>
-          <p>
-            Inspect model proposals inside the frame. Remove extras, mark
-            misses,<br class="wide" />
-            and export a count with a record of your changes.
-          </p>
-        </div>
-        <div class="experiment-note">
-          <span class="dot"></span> Human review required
-          <p>
-            Two labeled photographs.<br />Image-level evaluation.<br />No claim
-            of automated accuracy.
-          </p>
-        </div>
+        <h1>Count review</h1>
+        <p>
+          Check the outlines, remove extras, and mark any barnacles the model
+          missed.
+        </p>
       </section>
       <section class="workspace" aria-label="Barnacle image review">
         <aside>
-          <div class="panel-label">01 / CHOOSE A PHOTOGRAPH</div>
-          <label for="sample">Sample</label
+          <div class="panel-label">Photograph</div>
+          <label for="sample">Choose a sample</label
           ><select id="sample">
-            <option value="unseen">Unlabeled field photograph</option>
-            <option value="heldout_1">Held-out image 1 · trained on 2</option>
-            <option value="heldout_2">Held-out image 2 · trained on 1</option>
+            <option value="unseen">Field photograph · unlabeled</option>
+            <option value="heldout_1">Image 1 · held out</option>
+            <option value="heldout_2">Image 2 · held out</option>
           </select>
           <p id="source-note" class="small"></p>
           <details>
@@ -66,9 +53,9 @@
             /></label>
           </details>
           <div class="separator"></div>
-          <div class="panel-label">02 / INSPECT & CORRECT</div>
+          <div class="panel-label">Review tools</div>
           <label for="threshold"
-            >Minimum model score
+            >Proposal score cutoff
             <strong id="threshold-value">0.50</strong></label
           ><input
             id="threshold"
@@ -79,22 +66,22 @@
             value="0.5"
           />
           <p class="small">
-            Scores rank proposals; they are not calibrated probabilities. Hidden
-            proposals stay available.
+            Lower the cutoff to see more proposals. Scores are not calibrated
+            probabilities.
           </p>
           <div class="tools" role="group" aria-label="Review tools">
             <button data-mode="remove" class="active">
-              − Remove extra <kbd>D</kbd></button
-            ><button data-mode="add">+ Mark missed <kbd>A</kbd></button
-            ><button data-mode="pan">↔ Pan image <kbd>P</kbd></button
-            ><button data-mode="frame">◇ Set frame <kbd>F</kbd></button>
+              Remove extra <kbd>D</kbd></button
+            ><button data-mode="add">Mark missed <kbd>A</kbd></button
+            ><button data-mode="pan">Pan image <kbd>P</kbd></button
+            ><button data-mode="frame">Set frame <kbd>F</kbd></button>
           </div>
           <p id="tool-help" class="small">
             Click a proposal to remove it. Click a removed outline to restore
             it.
           </p>
           <div class="button-row">
-            <button id="undo">↶ Undo</button><button id="fit">Fit frame</button>
+            <button id="undo">Undo</button><button id="fit">Fit frame</button>
           </div>
           <div class="check-row">
             <input type="checkbox" id="show-masks" checked /><label
@@ -108,45 +95,40 @@
             >
           </div>
           <div class="tile-review">
-            <span>Inspect in tiles</span
+            <span>Review by tile</span
             ><strong id="tile-position">Overview</strong>
             <div class="button-row">
               <button id="prev-tile">← Previous</button
               ><button id="next-tile">Next →</button>
             </div>
             <p class="small">
-              Use tiles to inspect every part of the frame. Scrolling zooms;
-              drag in Pan mode.
+              Check every tile. Scroll to zoom; drag in Pan mode.
             </p>
           </div>
           <div class="separator"></div>
-          <div class="panel-label">03 / SAVE YOUR REVIEW</div>
-          <button id="export-json" class="primary">
-            Export review & audit JSON ↗</button
-          ><button id="export-csv" class="secondary">
-            Export accepted points CSV</button
+          <div class="panel-label">Save your work</div>
+          <button id="export-csv" class="secondary">
+            Download points (.csv)</button
           ><button id="export-region" class="secondary">
-            Export frame region JSON</button
+            Download frame (.json)</button
           ><button id="reset" class="quiet">
             Reset corrections for this image
           </button>
           <p class="small">
-            Corrections save in this browser automatically. Exports include
-            frame coordinates, threshold, model provenance, and changes.
+            Changes are saved in this browser. Download a review to keep the
+            count and its edit history.
           </p>
         </aside>
         <div class="image-panel">
           <div class="count-strip">
-            <div>
-              <span id="final-count">—</span><small>CURRENT TOTAL*</small>
+            <div class="total">
+              <small>Count so far</small><span id="final-count">—</span>
             </div>
             <div>
-              <span id="proposal-count">—</span><small>MODEL PROPOSALS</small>
+              <span id="proposal-count">—</span><small>proposals</small>
             </div>
-            <div><span id="removed-count">0</span><small>REMOVED</small></div>
-            <div>
-              <span id="manual-count">0</span><small>ADDED BY YOU</small>
-            </div>
+            <div><span id="removed-count">0</span><small>removed</small></div>
+            <div><span id="manual-count">0</span><small>added</small></div>
           </div>
           <div class="canvas-wrap">
             <canvas
@@ -155,7 +137,7 @@
             ></canvas>
             <div id="loading">Loading photograph…</div>
             <div class="canvas-top">
-              <span id="image-label">FIELD PHOTOGRAPH</span
+              <span id="image-label">Photograph</span
               ><span id="zoom-label">100%</span>
             </div>
             <div class="legend">
@@ -166,49 +148,58 @@
           </div>
           <div class="status-bar">
             <span id="status" role="status" aria-live="polite">Loading…</span
-            ><span>*Provisional until every region has been reviewed.</span>
+            ><span>Provisional count · check the whole frame.</span>
           </div>
         </div>
       </section>
-      <section class="evidence">
-        <div>
-          <div class="eyebrow">THE EVIDENCE, INCLUDING THE FAILURES</div>
-          <h2>Useful proposals.<br />Unreliable automatic counts.</h2>
-          <p>
-            Model evaluation matches masks one-to-one at IoU ≥ 0.5. Training and
-            evaluation photographs are separate; the score threshold was fixed
-            at 0.5. Reference counts come from the provided, incomplete
-            annotations.
-          </p>
+      <details class="evidence">
+        <summary>
+          Evaluation notes
+          <span>Two photographs; counts still need a human check.</span>
+        </summary>
+        <div class="evidence-content">
+          <div>
+            <h2>What the model gets wrong</h2>
+            <p>
+              On image 2 it overcounts; on image 1 it misses many barnacles. Use
+              the proposals as a starting point and inspect every tile before
+              keeping a count.
+            </p>
+            <p>
+              Each evaluation photograph was excluded from training. Masks are
+              matched one-to-one at IoU ≥ 0.5, with a fixed score cutoff of 0.5.
+              The supplied annotations are incomplete.
+            </p>
+          </div>
+          <div class="table-card">
+            <table>
+              <caption>
+                Mask R-CNN · held-out results
+              </caption>
+              <thead>
+                <tr>
+                  <th>Image</th>
+                  <th>Reference / predicted</th>
+                  <th>Precision</th>
+                  <th>Recall</th>
+                </tr>
+              </thead>
+              <tbody id="metrics-body">
+                <tr>
+                  <td colspan="4">Loading measured results…</td>
+                </tr>
+              </tbody>
+            </table>
+            <p>
+              Accuracy and time savings have not been measured on the unlabeled
+              photograph.
+            </p>
+          </div>
         </div>
-        <div class="table-card">
-          <table>
-            <caption>
-              Mask R-CNN · held-out photograph results
-            </caption>
-            <thead>
-              <tr>
-                <th>Evaluation image</th>
-                <th>Reference / predicted</th>
-                <th>Precision</th>
-                <th>Recall</th>
-              </tr>
-            </thead>
-            <tbody id="metrics-body">
-              <tr>
-                <td colspan="4">Loading measured results…</td>
-              </tr>
-            </tbody>
-          </table>
-          <p>
-            The different failure patterns motivate human correction. No
-            accuracy or time-saving claim is made for the unlabeled photograph.
-          </p>
-        </div>
-      </section>
+      </details>
       <footer>
-        Built to support scientific judgment.
-        <span>Python / PyTorch / OpenCV · Browser-based review</span>
+        Research prototype
+        <span>Local image review · no photographs are uploaded</span>
       </footer>
     </main>
   </body>

@@ -54,9 +54,32 @@ function mutate(action, details, fn) {
   remember();
   render();
 }
+let canvasSize = null;
 function resize() {
   const r = canvas.getBoundingClientRect(),
     dpr = window.devicePixelRatio || 1;
+  if (
+    canvasSize &&
+    canvasSize.width > 50 &&
+    canvasSize.height > 70 &&
+    state &&
+    r.width > 50 &&
+    r.height > 70
+  ) {
+    // Keep the same image center and relative zoom when the workspace resizes.
+    const box = bounds(state.polygon);
+    const fitScale = (size) =>
+      Math.min(
+        (size.width - 50) / (box.r - box.x),
+        (size.height - 70) / (box.b - box.y),
+      );
+    const centerX = (canvasSize.width / 2 - view.x) / view.scale;
+    const centerY = (canvasSize.height / 2 - view.y) / view.scale;
+    view.scale *= fitScale(r) / fitScale(canvasSize);
+    view.x = r.width / 2 - centerX * view.scale;
+    view.y = r.height / 2 - centerY * view.scale;
+  }
+  canvasSize = { width: r.width, height: r.height };
   canvas.width = Math.round(r.width * dpr);
   canvas.height = Math.round(r.height * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -178,9 +201,11 @@ function render() {
 function setMode(next) {
   mode = next;
   pendingCorners = [];
-  document
-    .querySelectorAll("[data-mode]")
-    .forEach((b) => b.classList.toggle("active", b.dataset.mode === mode));
+  document.querySelectorAll("[data-mode]").forEach((b) => {
+    const selected = b.dataset.mode === mode;
+    b.classList.toggle("active", selected);
+    b.setAttribute("aria-pressed", String(selected));
+  });
   $("tool-help").textContent = help[mode];
   canvas.style.cursor =
     mode === "pan" ? "grab" : mode === "remove" ? "pointer" : "crosshair";
@@ -420,9 +445,14 @@ async function showDocument(next, key, imageUrl) {
     const train = (doc.model_train_images || []).join(", ");
     $("source-note").textContent =
       key === "unseen"
-        ? `Unlabeled: no accuracy is known. Model trained on ${train}.`
-        : `${key.startsWith("heldout") ? "Image-level held-out demonstration. " : ""}Model training images: ${train || "none"}.`;
-    $("image-label").textContent = key.replaceAll("_", " ").toUpperCase();
+        ? `No reference labels. Trained on ${train}.`
+        : `Training photographs: ${train || "none"}.`;
+    $("image-label").textContent =
+      {
+        unseen: "unseen_img1.png",
+        heldout_1: "img1.png · held out",
+        heldout_2: "img2.png · held out",
+      }[key] || "Your photograph";
     buildTiles();
     setMode("remove");
     resize();
