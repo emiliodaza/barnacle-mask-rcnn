@@ -1,0 +1,22 @@
+[
+  {
+    "image": "img1.png",
+    "raw_contours": 1718,
+    "closed_contours": 1500,
+    "reference_in_region": 1702,
+    "excluded_outside_region": 16,
+    "compact_mask_bytes": 889496,
+    "full_mask_bytes_if_materialized": 13727287296,
+    "region_area_pixels": 1972615
+  },
+  {
+    "image": "img2.png",
+    "raw_contours": 397,
+    "closed_contours": 390,
+    "reference_in_region": 389,
+    "excluded_outside_region": 8,
+    "compact_mask_bytes": 650878,
+    "full_mask_bytes_if_materialized": 3172137984,
+    "region_area_pixels": 2542343
+  }
+]

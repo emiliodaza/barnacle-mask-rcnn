@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Barnacle · Field review</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="core.js" defer></script>
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="./"
+        ><span class="brand-mark">◉</span> barnacle<span class="brand-label"
+          >FIELD REVIEW</span
+        ></a
+      ><span class="header-note">A scientist stays in the loop.</span
+      ><a href="../README.md" class="readme">About the experiment ↗</a>
+    </header>
+    <main>
+      <section class="intro">
+        <div>
+          <div class="eyebrow">DALI DATA CHALLENGE · RESEARCH PROTOTYPE</div>
+          <h1>A faster starting point.<br />A count you can check.</h1>
+          <p>
+            Inspect model proposals inside the frame. Remove extras, mark
+            misses,<br class="wide" />
+            and export a count with a record of your changes.
+          </p>
+        </div>
+        <div class="experiment-note">
+          <span class="dot"></span> Human review required
+          <p>
+            Two labeled photographs.<br />Image-level evaluation.<br />No claim
+            of automated accuracy.
+          </p>
+        </div>
+      </section>
+      <section class="workspace" aria-label="Barnacle image review">
+        <aside>
+          <div class="panel-label">01 / CHOOSE A PHOTOGRAPH</div>
+          <label for="sample">Sample</label
+          ><select id="sample">
+            <option value="unseen">Unlabeled field photograph</option>
+            <option value="heldout_1">Held-out image 1 · trained on 2</option>
+            <option value="heldout_2">Held-out image 2 · trained on 1</option>
+          </select>
+          <p id="source-note" class="small"></p>
+          <details>
+            <summary>Use your own photograph</summary>
+            <p class="small">
+              Select a photo, mark its four inner frame corners, and export the
+              region. Run the documented Python command, then load its proposal
+              JSON here. Model inference runs in Python.
+            </p>
+            <label class="file-label"
+              >Load photograph<input
+                id="photo-file"
+                type="file"
+                accept="image/*" /></label
+            ><label class="file-label"
+              >Load proposal JSON<input
+                id="prediction-file"
+                type="file"
+                accept=".json,application/json"
+            /></label>
+          </details>
+          <div class="separator"></div>
+          <div class="panel-label">02 / INSPECT & CORRECT</div>
+          <label for="threshold"
+            >Minimum model score
+            <strong id="threshold-value">0.50</strong></label
+          ><input
+            id="threshold"
+            type="range"
+            min="0.25"
+            max="0.95"
+            step="0.05"
+            value="0.5"
+          />
+          <p class="small">
+            Scores rank proposals; they are not calibrated probabilities. Hidden
+            proposals stay available.
+          </p>
+          <div class="tools" role="group" aria-label="Review tools">
+            <button data-mode="remove" class="active">
+              − Remove extra <kbd>D</kbd></button
+            ><button data-mode="add">+ Mark missed <kbd>A</kbd></button
+            ><button data-mode="pan">↔ Pan image <kbd>P</kbd></button
+            ><button data-mode="frame">◇ Set frame <kbd>F</kbd></button>
+          </div>
+          <p id="tool-help" class="small">
+            Click a proposal to remove it. Click a removed outline to restore
+            it.
+          </p>
+          <div class="button-row">
+            <button id="undo">↶ Undo</button><button id="fit">Fit frame</button>
+          </div>
+          <div class="check-row">
+            <input type="checkbox" id="show-masks" checked /><label
+              for="show-masks"
+              >Show mask outlines</label
+            >
+          </div>
+          <div class="check-row">
+            <input type="checkbox" id="show-removed" /><label for="show-removed"
+              >Show removed proposals</label
+            >
+          </div>
+          <div class="tile-review">
+            <span>Inspect in tiles</span
+            ><strong id="tile-position">Overview</strong>
+            <div class="button-row">
+              <button id="prev-tile">← Previous</button
+              ><button id="next-tile">Next →</button>
+            </div>
+            <p class="small">
+              Use tiles to inspect every part of the frame. Scrolling zooms;
+              drag in Pan mode.
+            </p>
+          </div>
+          <div class="separator"></div>
+          <div class="panel-label">03 / SAVE YOUR REVIEW</div>
+          <button id="export-json" class="primary">
+            Export review & audit JSON ↗</button
+          ><button id="export-csv" class="secondary">
+            Export accepted points CSV</button
+          ><button id="export-region" class="secondary">
+            Export frame region JSON</button
+          ><button id="reset" class="quiet">
+            Reset corrections for this image
+          </button>
+          <p class="small">
+            Corrections save in this browser automatically. Exports include
+            frame coordinates, threshold, model provenance, and changes.
+          </p>
+        </aside>
+        <div class="image-panel">
+          <div class="count-strip">
+            <div>
+              <span id="final-count">—</span><small>CURRENT TOTAL*</small>
+            </div>
+            <div>
+              <span id="proposal-count">—</span><small>MODEL PROPOSALS</small>
+            </div>
+            <div><span id="removed-count">0</span><small>REMOVED</small></div>
+            <div>
+              <span id="manual-count">0</span><small>ADDED BY YOU</small>
+            </div>
+          </div>
+          <div class="canvas-wrap">
+            <canvas
+              id="canvas"
+              aria-label="Zoomable barnacle photograph with clickable model outlines"
+            ></canvas>
+            <div id="loading">Loading photograph…</div>
+            <div class="canvas-top">
+              <span id="image-label">FIELD PHOTOGRAPH</span
+              ><span id="zoom-label">100%</span>
+            </div>
+            <div class="legend">
+              <span><i class="teal"></i> Proposal</span
+              ><span><i class="coral"></i> Added point</span
+              ><span><i class="gold"></i> Frame interior</span>
+            </div>
+          </div>
+          <div class="status-bar">
+            <span id="status" role="status" aria-live="polite">Loading…</span
+            ><span>*Provisional until every region has been reviewed.</span>
+          </div>
+        </div>
+      </section>
+      <section class="evidence">
+        <div>
+          <div class="eyebrow">THE EVIDENCE, INCLUDING THE FAILURES</div>
+          <h2>Useful proposals.<br />Unreliable automatic counts.</h2>
+          <p>
+            Model evaluation matches masks one-to-one at IoU ≥ 0.5. Training and
+            evaluation photographs are separate; the score threshold was fixed
+            at 0.5. Reference counts come from the provided, incomplete
+            annotations.
+          </p>
+        </div>
+        <div class="table-card">
+          <table>
+            <caption>
+              Mask R-CNN · held-out photograph results
+            </caption>
+            <thead>
+              <tr>
+                <th>Evaluation image</th>
+                <th>Reference / predicted</th>
+                <th>Precision</th>
+                <th>Recall</th>
+              </tr>
+            </thead>
+            <tbody id="metrics-body">
+              <tr>
+                <td colspan="4">Loading measured results…</td>
+              </tr>
+            </tbody>
+          </table>
+          <p>
+            The different failure patterns motivate human correction. No
+            accuracy or time-saving claim is made for the unlabeled photograph.
+          </p>
+        </div>
+      </section>
+      <footer>
+        Built to support scientific judgment.
+        <span>Python / PyTorch / OpenCV · Browser-based review</span>
+      </footer>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,404 @@
+{
+  "protocol": "two directional image-held-out folds, no test tuning; final model is a separate unlabeled demonstration",
+  "primary_score_threshold": 0.5,
+  "sensitivity_thresholds": [
+    0.25,
+    0.75
+  ],
+  "mask_threshold": 0.5,
+  "iou_threshold": 0.5,
+  "dedup_mask_iou_threshold": 0.3,
+  "annotation_closing": false,
+  "epochs": 5,
+  "seed": 42,
+  "environment": {
+    "torch": "2.11.0",
+    "torchvision": "0.26.0",
+    "numpy": "2.4.4",
+    "opencv-python": "4.13.0.92",
+    "scipy": "1.17.1",
+    "matplotlib": "3.10.9"
+  },
+  "folds": [
+    {
+      "train_image": 1,
+      "test_image": 2,
+      "checkpoint": "outputs/fold_train1.pth",
+      "checkpoint_sha256": "f23410d69e3cfa03bce72227831e788a8fa8bd09fa0708d26642217e53a60a53",
+      "training": {
+        "train_images": [
+          "data/img1.png"
+        ],
+        "train_masks": [
+          "data/mask1.png"
+        ],
+        "epochs": 5,
+        "patch_size": 512,
+        "patch_stride": 384,
+        "preprocess": "raw",
+        "seed": 42,
+        "learning_rate": 0.0001,
+        "freeze_backbone": true,
+        "initial_weights": "COCO_V1",
+        "device": "cpu",
+        "threads": 2,
+        "deterministic_algorithms": true,
+        "environment": {
+          "torch": "2.11.0",
+          "torchvision": "0.26.0",
+          "numpy": "2.4.4",
+          "opencv-python": "4.13.0.92",
+          "scipy": "1.17.1",
+          "matplotlib": "3.10.9"
+        },
+        "history": [
+          {
+            "loss_classifier": 0.3912414461374283,
+            "loss_box_reg": 0.47493134438991547,
+            "loss_mask": 0.4281477816402912,
+            "loss_objectness": 2.22934290766716,
+            "loss_rpn_box_reg": 0.3151060389354825,
+            "epoch": 1,
+            "total_loss": 3.8387695187702775
+          },
+          {
+            "loss_classifier": 0.29842515103518963,
+            "loss_box_reg": 0.4150784220546484,
+            "loss_mask": 0.3240604102611542,
+            "loss_objectness": 0.5546474829316139,
+            "loss_rpn_box_reg": 0.2709235781803727,
+            "epoch": 2,
+            "total_loss": 1.8631350444629788
+          },
+          {
+            "loss_classifier": 0.26591598987579346,
+            "loss_box_reg": 0.3694724887609482,
+            "loss_mask": 0.2970694229006767,
+            "loss_objectness": 0.4213156457990408,
+            "loss_rpn_box_reg": 0.2545857662335038,
+            "epoch": 3,
+            "total_loss": 1.608359313569963
+          },
+          {
+            "loss_classifier": 0.23874356132000685,
+            "loss_box_reg": 0.35726881586015224,
+            "loss_mask": 0.30576248839497566,
+            "loss_objectness": 0.35405880492180586,
+            "loss_rpn_box_reg": 0.24569902569055557,
+            "epoch": 4,
+            "total_loss": 1.5015326961874962
+          },
+          {
+            "loss_classifier": 0.22222596406936646,
+            "loss_box_reg": 0.3333196509629488,
+            "loss_mask": 0.2907520765438676,
+            "loss_objectness": 0.3317187959328294,
+            "loss_rpn_box_reg": 0.22787302639335394,
+            "epoch": 5,
+            "total_loss": 1.4058895139023662
+          }
+        ],
+        "training_seconds": 113.37523933302145,
+        "patches": 16,
+        "source_sha256": {
+          "data/img1.png": "c24a912de168fb5e72b31fd4120f20d4fbe89b80eba211b6a73c54504c77ae00",
+          "data/mask1.png": "caf204346979219f9e31f8aee12d5d2ba4a7b1fc78336ce16f35c2eea3fe1137",
+          "config/regions.json": "2075600ba50026df421f3727b3ff4d5323f717ef651422751152368a11be7752"
+        }
+      },
+      "inference": {
+        "seconds": 20.917115792050026,
+        "tiles": 16,
+        "candidates_in_region": 2207,
+        "removed_duplicates": 805
+      }
+    },
+    {
+      "train_image": 2,
+      "test_image": 1,
+      "checkpoint": "outputs/fold_train2.pth",
+      "checkpoint_sha256": "593e4524ad7b9ebacc1f20a07857bef7165924505db9f47ea43830b318d97322",
+      "training": {
+        "train_images": [
+          "data/img2.png"
+        ],
+        "train_masks": [
+          "data/mask2.png"
+        ],
+        "epochs": 5,
+        "patch_size": 512,
+        "patch_stride": 384,
+        "preprocess": "raw",
+        "seed": 42,
+        "learning_rate": 0.0001,
+        "freeze_backbone": true,
+        "initial_weights": "COCO_V1",
+        "device": "cpu",
+        "threads": 2,
+        "deterministic_algorithms": true,
+        "environment": {
+          "torch": "2.11.0",
+          "torchvision": "0.26.0",
+          "numpy": "2.4.4",
+          "opencv-python": "4.13.0.92",
+          "scipy": "1.17.1",
+          "matplotlib": "3.10.9"
+        },
+        "history": [
+          {
+            "loss_classifier": 0.45742165111005306,
+            "loss_box_reg": 0.5702746529132128,
+            "loss_mask": 0.48290424421429634,
+            "loss_objectness": 1.2721357624977827,
+            "loss_rpn_box_reg": 0.17554731480777264,
+            "epoch": 1,
+            "total_loss": 2.9582836255431175
+          },
+          {
+            "loss_classifier": 0.2694394844584167,
+            "loss_box_reg": 0.5024163704365492,
+            "loss_mask": 0.330076664686203,
+            "loss_objectness": 0.2598330043256283,
+            "loss_rpn_box_reg": 0.1670285603031516,
+            "epoch": 2,
+            "total_loss": 1.5287940842099488
+          },
+          {
+            "loss_classifier": 0.25347909703850746,
+            "loss_box_reg": 0.46058955788612366,
+            "loss_mask": 0.3057411778718233,
+            "loss_objectness": 0.1854730793274939,
+            "loss_rpn_box_reg": 0.13793445215560496,
+            "epoch": 3,
+            "total_loss": 1.3432173642795533
+          },
+          {
+            "loss_classifier": 0.24277731776237488,
+            "loss_box_reg": 0.42795224115252495,
+            "loss_mask": 0.2827949170023203,
+            "loss_objectness": 0.1344733857549727,
+            "loss_rpn_box_reg": 0.11905288766138256,
+            "epoch": 4,
+            "total_loss": 1.2070507493335754
+          },
+          {
+            "loss_classifier": 0.22567806858569384,
+            "loss_box_reg": 0.4088355805724859,
+            "loss_mask": 0.2755938349291682,
+            "loss_objectness": 0.1260504056699574,
+            "loss_rpn_box_reg": 0.10805871384218335,
+            "epoch": 5,
+            "total_loss": 1.1442166035994887
+          }
+        ],
+        "training_seconds": 94.78699491696898,
+        "patches": 16,
+        "source_sha256": {
+          "data/img2.png": "f407ec74f56467a19078778a728408a9d79079088550de3b51fdd5db1b4843b9",
+          "data/mask2.png": "e93156b2e8693806fe0e8e0f62369b10bd78a580b098c365703f17c71c7ebdbc",
+          "config/regions.json": "2075600ba50026df421f3727b3ff4d5323f717ef651422751152368a11be7752"
+        }
+      },
+      "inference": {
+        "seconds": 15.065608917037025,
+        "tiles": 16,
+        "candidates_in_region": 2297,
+        "removed_duplicates": 1172
+      }
+    }
+  ],
+  "metrics": [
+    {
+      "method": "mask_rcnn",
+      "train_image": 1,
+      "test_image": 2,
+      "score_threshold": 0.25,
+      "reference_count": 389,
+      "predicted_count": 1402,
+      "signed_count_error": 1013,
+      "absolute_count_error": 1013,
+      "relative_count_error": 2.6041131105398456,
+      "tp": 278,
+      "fp": 1124,
+      "fn": 111,
+      "precision": 0.19828815977175462,
+      "recall": 0.7146529562982005,
+      "f1": 0.31044109436069234,
+      "mean_matched_mask_iou": 0.7105983725125841,
+      "iou_threshold": 0.5
+    },
+    {
+      "method": "mask_rcnn",
+      "train_image": 1,
+      "test_image": 2,
+      "score_threshold": 0.5,
+      "reference_count": 389,
+      "predicted_count": 756,
+      "signed_count_error": 367,
+      "absolute_count_error": 367,
+      "relative_count_error": 0.9434447300771208,
+      "tp": 235,
+      "fp": 521,
+      "fn": 154,
+      "precision": 0.31084656084656087,
+      "recall": 0.6041131105398457,
+      "f1": 0.4104803493449782,
+      "mean_matched_mask_iou": 0.7125181347765821,
+      "iou_threshold": 0.5
+    },
+    {
+      "method": "mask_rcnn",
+      "train_image": 1,
+      "test_image": 2,
+      "score_threshold": 0.75,
+      "reference_count": 389,
+      "predicted_count": 252,
+      "signed_count_error": -137,
+      "absolute_count_error": 137,
+      "relative_count_error": 0.35218508997429304,
+      "tp": 125,
+      "fp": 127,
+      "fn": 264,
+      "precision": 0.49603174603174605,
+      "recall": 0.3213367609254499,
+      "f1": 0.390015600624025,
+      "mean_matched_mask_iou": 0.7065629405975342,
+      "iou_threshold": 0.5
+    },
+    {
+      "method": "bright_components",
+      "train_image": 1,
+      "test_image": 2,
+      "score_threshold": null,
+      "reference_count": 389,
+      "predicted_count": 234,
+      "signed_count_error": -155,
+      "absolute_count_error": 155,
+      "relative_count_error": 0.39845758354755784,
+      "tp": 1,
+      "fp": 233,
+      "fn": 388,
+      "precision": 0.004273504273504274,
+      "recall": 0.002570694087403599,
+      "f1": 0.0032102728731942215,
+      "mean_matched_mask_iou": 0.5554474592208862,
+      "iou_threshold": 0.5
+    },
+    {
+      "method": "constant_training_density",
+      "train_image": 1,
+      "test_image": 2,
+      "score_threshold": null,
+      "reference_count": 389,
+      "predicted_count": 2194,
+      "signed_count_error": 1805,
+      "absolute_count_error": 1805,
+      "relative_count_error": 4.640102827763497,
+      "tp": null,
+      "fp": null,
+      "fn": null,
+      "precision": null,
+      "recall": null,
+      "f1": null,
+      "mean_matched_mask_iou": null,
+      "iou_threshold": null
+    },
+    {
+      "method": "mask_rcnn",
+      "train_image": 2,
+      "test_image": 1,
+      "score_threshold": 0.25,
+      "reference_count": 1702,
+      "predicted_count": 1125,
+      "signed_count_error": -577,
+      "absolute_count_error": 577,
+      "relative_count_error": 0.3390129259694477,
+      "tp": 906,
+      "fp": 219,
+      "fn": 796,
+      "precision": 0.8053333333333333,
+      "recall": 0.5323149236192715,
+      "f1": 0.6409621506897772,
+      "mean_matched_mask_iou": 0.72692485729327,
+      "iou_threshold": 0.5
+    },
+    {
+      "method": "mask_rcnn",
+      "train_image": 2,
+      "test_image": 1,
+      "score_threshold": 0.5,
+      "reference_count": 1702,
+      "predicted_count": 1027,
+      "signed_count_error": -675,
+      "absolute_count_error": 675,
+      "relative_count_error": 0.39659224441833135,
+      "tp": 869,
+      "fp": 158,
+      "fn": 833,
+      "precision": 0.8461538461538461,
+      "recall": 0.5105757931844889,
+      "f1": 0.6368633198973983,
+      "mean_matched_mask_iou": 0.7295420756960079,
+      "iou_threshold": 0.5
+    },
+    {
+      "method": "mask_rcnn",
+      "train_image": 2,
+      "test_image": 1,
+      "score_threshold": 0.75,
+      "reference_count": 1702,
+      "predicted_count": 820,
+      "signed_count_error": -882,
+      "absolute_count_error": 882,
+      "relative_count_error": 0.518213866039953,
+      "tp": 739,
+      "fp": 81,
+      "fn": 963,
+      "precision": 0.901219512195122,
+      "recall": 0.43419506462984725,
+      "f1": 0.5860428231562252,
+      "mean_matched_mask_iou": 0.7352705857589216,
+      "iou_threshold": 0.5
+    },
+    {
+      "method": "bright_components",
+      "train_image": 2,
+      "test_image": 1,
+      "score_threshold": null,
+      "reference_count": 1702,
+      "predicted_count": 982,
+      "signed_count_error": -720,
+      "absolute_count_error": 720,
+      "relative_count_error": 0.42303172737955347,
+      "tp": 0,
+      "fp": 982,
+      "fn": 1702,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "mean_matched_mask_iou": null,
+      "iou_threshold": 0.5
+    },
+    {
+      "method": "constant_training_density",
+      "train_image": 2,
+      "test_image": 1,
+      "score_threshold": null,
+      "reference_count": 1702,
+      "predicted_count": 302,
+      "signed_count_error": -1400,
+      "absolute_count_error": 1400,
+      "relative_count_error": 0.8225616921269095,
+      "tp": null,
+      "fp": null,
+      "fn": null,
+      "precision": null,
+      "recall": null,
+      "f1": null,
+      "mean_matched_mask_iou": null,
+      "iou_threshold": null
+    }
+  ],
+  "elapsed_seconds": 470.8280205419869,
+  "reference_note": "Agreement with incomplete provided blue contour annotations, not verified biological truth."
+}

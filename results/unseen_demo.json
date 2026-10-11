@@ -1,0 +1,98 @@
+{
+  "image": "unseen_img1.png",
+  "proposals_at_0_5": 820,
+  "labeled": false,
+  "accuracy": null,
+  "inference": {
+    "seconds": 11.560002084006555,
+    "tiles": 16,
+    "candidates_in_region": 1645,
+    "removed_duplicates": 672
+  },
+  "training": {
+    "train_images": [
+      "data/img1.png",
+      "data/img2.png"
+    ],
+    "train_masks": [
+      "data/mask1.png",
+      "data/mask2.png"
+    ],
+    "epochs": 5,
+    "patch_size": 512,
+    "patch_stride": 384,
+    "preprocess": "raw",
+    "seed": 42,
+    "learning_rate": 0.0001,
+    "freeze_backbone": true,
+    "initial_weights": "COCO_V1",
+    "device": "cpu",
+    "threads": 2,
+    "deterministic_algorithms": true,
+    "environment": {
+      "torch": "2.11.0",
+      "torchvision": "0.26.0",
+      "numpy": "2.4.4",
+      "opencv-python": "4.13.0.92",
+      "scipy": "1.17.1",
+      "matplotlib": "3.10.9"
+    },
+    "history": [
+      {
+        "loss_classifier": 0.4121010829694569,
+        "loss_box_reg": 0.48668139334768057,
+        "loss_mask": 0.4152948250994086,
+        "loss_objectness": 1.15292366174981,
+        "loss_rpn_box_reg": 0.24547255574725568,
+        "epoch": 1,
+        "total_loss": 2.7124735189136118
+      },
+      {
+        "loss_classifier": 0.2814896882046014,
+        "loss_box_reg": 0.40723972814157605,
+        "loss_mask": 0.32048666290938854,
+        "loss_objectness": 0.31818760465830564,
+        "loss_rpn_box_reg": 0.2071509261149913,
+        "epoch": 2,
+        "total_loss": 1.534554610028863
+      },
+      {
+        "loss_classifier": 0.24866750743240118,
+        "loss_box_reg": 0.3826948208734393,
+        "loss_mask": 0.30027889274060726,
+        "loss_objectness": 0.2659290737938136,
+        "loss_rpn_box_reg": 0.19042607676237822,
+        "epoch": 3,
+        "total_loss": 1.3879963716026396
+      },
+      {
+        "loss_classifier": 0.24064901191741228,
+        "loss_box_reg": 0.36152817867696285,
+        "loss_mask": 0.2891085874289274,
+        "loss_objectness": 0.2591347899287939,
+        "loss_rpn_box_reg": 0.1813125039334409,
+        "epoch": 4,
+        "total_loss": 1.3317330718855374
+      },
+      {
+        "loss_classifier": 0.23390490794554353,
+        "loss_box_reg": 0.3648429373279214,
+        "loss_mask": 0.28602046286687255,
+        "loss_objectness": 0.24120143009349704,
+        "loss_rpn_box_reg": 0.17634009284665808,
+        "epoch": 5,
+        "total_loss": 1.3023098310804926
+      }
+    ],
+    "training_seconds": 209.18854325002758,
+    "patches": 32,
+    "source_sha256": {
+      "data/img1.png": "c24a912de168fb5e72b31fd4120f20d4fbe89b80eba211b6a73c54504c77ae00",
+      "data/img2.png": "f407ec74f56467a19078778a728408a9d79079088550de3b51fdd5db1b4843b9",
+      "data/mask1.png": "caf204346979219f9e31f8aee12d5d2ba4a7b1fc78336ce16f35c2eea3fe1137",
+      "data/mask2.png": "e93156b2e8693806fe0e8e0f62369b10bd78a580b098c365703f17c71c7ebdbc",
+      "config/regions.json": "2075600ba50026df421f3727b3ff4d5323f717ef651422751152368a11be7752"
+    }
+  },
+  "checkpoint_sha256": "2934f00031b36980857744b6b3ce016844a841489f5a6ce98cb9827b55eb110a"
+}

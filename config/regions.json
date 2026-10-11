@@ -1,0 +1,11 @@
+{
+  "coordinate_system": "original image pixels, perimeter order",
+  "source": "manually selected inner frame corners from RGB photographs, without masks",
+  "count_rule": "filled instance centroid is inside or on the selected polygon",
+  "images": {
+    "img1.png": {"polygon": [[1134, 505], [2529, 474], [2538, 1910], [1135, 1885]]},
+    "img2.png": {"polygon": [[973, 230], [2536, 233], [2537, 1852], [972, 1858]]},
+    "unseen_img1.png": {"polygon": [[1031, 216], [2520, 194], [2512, 1739], [1049, 1752]]},
+    "unseen_img2.png": {"polygon": [[0, 0], [499, 0], [499, 499], [0, 499]], "note": "whole supplied crop; no visible frame, not included in quantitative evaluation"}
+  }
+}
