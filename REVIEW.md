@@ -1,37 +1,43 @@
-# Final submission readiness
+# Submission note
 
-**Ready to share as an honestly evaluated DALI prototype.** This is a proposal and
-human-review system, not a validated automatic counter. The original assessment
-is preserved in [docs/initial_review.md](docs/initial_review.md).
+The repository is ready to present as a DALI challenge prototype. It includes a
+working demonstration, a reproducible experiment, failure analysis, and an
+executed notebook. The model is imperfect, which is consistent with the brief;
+the results explain where it fails and what to investigate next.
 
-## Addressed
+## What to share
 
-- Original training photograph restored; supplied file hashes verified.
-- Annotation-independent frame polygons, explicit centroid counting rule, and region-constrained inference.
-- Compact instance masks, lazy patch targets, full edge coverage, retained negative patches, and consistent train/inference scale.
-- Separate image-held-out training runs, fixed thresholds, one-to-one mask matching, count errors, baselines, sensitivity results, and failure figures.
-- Independent final model for the official unlabeled demonstration; no claimed unseen accuracy.
-- Functional browser review: add/remove, undo, threshold exploration, tile navigation, frame selection, persistence, and audit/point export.
-- Readable modules, pinned dependencies, source/model hashes, reproduction instructions, and a clean executed notebook.
+Submit the public repository:
+[emiliodaza/barnacle-mask-rcnn](https://github.com/emiliodaza/barnacle-mask-rcnn).
+The README is the entry point. The notebook is the experiment narrative, and the
+browser examples can be tried without installing machine-learning dependencies.
+Checkpoints are available in the linked release.
 
-## Verification
+## Checks
 
-- 12 Python regression checks pass, including tiled coordinate mapping and duplicate removal without label access.
-- Browser counting and validation checks pass; JavaScript syntax checks pass.
-- Ruff lint and formatting checks pass; installed Python dependencies have no reported conflicts.
-- Both five-epoch folds and the separate final model were trained and evaluated locally.
-- Repeated final-model inference exactly reproduced all 973 cached instance records at score 0.25, including the 820 proposals above score 0.5. Original image hash verified.
-- The notebook executes all eight code cells, embeds five figures, and has no error outputs or stderr streams.
-- Manual browser checks verified adding/removing proposals, undo, reload persistence, tile inspection, example selection, and JSON audit export.
+- Python regression tests cover tile edges, duplicate suppression, coordinate mapping, label separation, matching, and empty targets.
+- Browser logic tests cover counts, thresholds, frame boundaries, and imported data.
+- Both held-out folds and the separate demonstration model were trained locally; the results and source hashes are saved.
+- Independent inference reproduced the saved demonstration proposals.
+- The notebook executes without error or warning output.
+- Browser checks cover corrections, undo, persistence, tile navigation, sample selection, and downloads.
 
-## Remaining scientific limitations
+The fixed protocol is in `docs/protocol.md`. The earlier assessment in
+`docs/initial_review.md` records the project before these repairs; its missing-file
+and publication findings are historical.
 
-Two photographs cannot establish generalization. Labels and manual frame corners
-have uncertainty; threshold/mask matching, incomplete labels, and tile seams
-limit interpretation. No scientist usability/time study has been performed.
-Exports remain provisional. These limits are explicit in the README and notebook,
-consistent with the challenge's request for an honest small experiment.
+## Before sending the application
 
-Before the actual application, explain the decisions and limitations in your own
-words, and supply the separately required outside code sample. Admission cannot
-be guaranteed by this artifact.
+Read the notebook and [code walkthrough](docs/code_walkthrough.md), then explain
+the choices and limitations in your own words. In particular, understand why the
+two photographs are split before tiling, why the references are imperfect, and
+why a plausible total is not enough evidence of good predictions.
+
+The remaining application item is DALI's **separate outside code sample**.
+This repository does not replace it. Any personal learning reflection in the
+application should describe your own understanding and experience.
+
+Scientific validation remains future work: more independent photographs,
+confirmed counting conventions, a label audit, and a comparison of manual versus
+assisted review time and final accuracy. Those limits are described in the
+submission rather than hidden behind the demo.

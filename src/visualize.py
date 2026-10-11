@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 
 
 def overlay_instances(image, instances, color=(61, 210, 172), alpha=0.3):
+    """Blend compact masks onto a copy of an RGB photo and draw their outlines."""
     out = image.copy()
     for p in instances:
         x, y, r, b = p.box
@@ -22,26 +23,8 @@ def overlay_instances(image, instances, color=(61, 210, 172), alpha=0.3):
     return out
 
 
-def overlay_masks(image, masks, alpha=0.35):
-    out = image.copy()
-    color = np.asarray([61, 210, 172])
-    for mask in masks:
-        select = mask.astype(bool)
-        out[select] = np.rint((1 - alpha) * out[select] + alpha * color).astype(
-            np.uint8
-        )
-    return out
-
-
-def draw_boxes(image, boxes, scores=None):
-    out = image.copy()
-    for i, box in enumerate(boxes):
-        x, y, r, b = np.asarray(box, dtype=int)
-        cv2.rectangle(out, (x, y), (r, b), (255, 120, 70), 1)
-    return out
-
-
 def show_image(image, title=None, figsize=(10, 10)):
+    """Display an RGB array without axes and return the Matplotlib figure."""
     fig, ax = plt.subplots(figsize=figsize)
     ax.imshow(image)
     ax.set_title(title or "")
@@ -51,6 +34,7 @@ def show_image(image, title=None, figsize=(10, 10)):
 
 
 def show_prediction(result, title="Model proposals; human review required"):
+    """Show the selected frame and all proposals returned by inference."""
     out = overlay_instances(result["image"], result["instances"])
     cv2.polylines(
         out, [np.asarray(result["polygon"], np.int32)], True, (255, 199, 92), 5
@@ -59,6 +43,10 @@ def show_prediction(result, title="Model proposals; human review required"):
 
 
 def save_comparison(image, reference, predictions, matches, polygon, path, title):
+    """Save reference and error views cropped to the frame bounding rectangle.
+
+    Teal marks matches, orange extra proposals, and blue missed references.
+    """
     matched_pred = {i for i, _, _ in matches}
     matched_ref = {j for _, j, _ in matches}
     base = image.copy()

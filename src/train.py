@@ -28,6 +28,7 @@ PREPROCESSORS = {
 
 
 def environment():
+    """Record the package versions needed to interpret or repeat a model run."""
     return {
         name: importlib.metadata.version(name)
         for name in [
@@ -42,6 +43,7 @@ def environment():
 
 
 def seed_everything(seed):
+    """Seed the generators and ask PyTorch to reject nondeterministic operations."""
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -59,6 +61,12 @@ def train_one_experiment(
     device="cpu",
     threads=2,
 ):
+    """Train on the requested original image IDs and save weights with provenance.
+
+    Run from the repository root. The caller decides the image-level split; this
+    function never loads the other image for evaluation. Return the checkpoint
+    path and its configuration, including mean losses and source-file hashes.
+    """
     if not train_ids or any(i not in [1, 2] for i in train_ids) or num_epochs < 1:
         raise ValueError("Choose training image IDs 1 and/or 2 and at least one epoch.")
     seed_everything(seed)

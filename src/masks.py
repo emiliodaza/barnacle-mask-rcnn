@@ -6,6 +6,11 @@ from src.instances import instance_from_contour
 
 
 def extract_blue_contours(mask_rgb, min_area=20, closing_kernel=0):
+    """Find the supplied blue outlines and sort them top-to-bottom, then left-to-right.
+
+    Closing is off by default because it can join neighboring barnacles.
+    closing_kernel is retained for the annotation audit of the earlier approach.
+    """
     binary = cv2.inRange(
         cv2.cvtColor(mask_rgb, cv2.COLOR_RGB2HSV),
         np.array([90, 50, 30]),
@@ -25,45 +30,11 @@ def extract_blue_contours(mask_rgb, min_area=20, closing_kernel=0):
 
 
 def annotation_instances(mask_rgb, min_area=20, closing_kernel=0):
+    """Fill each recovered outline into a compact reference mask.
+
+    These references inherit the omissions and ambiguities of the supplied labels.
+    """
     return [
         instance_from_contour(c)
         for c in extract_blue_contours(mask_rgb, min_area, closing_kernel)
-    ]
-
-
-def contours_to_instance_masks(contours, height, width, min_filled_area=20):
-    # Compatibility helper. The main pipeline uses compact masks instead.
-    instances = [instance_from_contour(c) for c in contours]
-    return [p.full_mask(height, width) for p in instances if p.area >= min_filled_area]
-
-
-def annotation_to_instance_masks(mask_rgb, min_area=20):
-    return contours_to_instance_masks(
-        extract_blue_contours(mask_rgb, min_area), *mask_rgb.shape[:2]
-    )
-
-
-def get_annotation_bbox(mask_rgb, padding=20):
-    contours = extract_blue_contours(mask_rgb)
-    if not contours:
-        return None
-    points = np.concatenate(contours).reshape(-1, 2)
-    return (
-        max(int(points[:, 0].min()) - padding, 0),
-        max(int(points[:, 1].min()) - padding, 0),
-        min(int(points[:, 0].max()) + padding, mask_rgb.shape[1] - 1),
-        min(int(points[:, 1].max()) + padding, mask_rgb.shape[0] - 1),
-    )
-
-
-def crop_to_bbox(image, bbox):
-    x1, y1, x2, y2 = bbox
-    return image[y1 : y2 + 1, x1 : x2 + 1]
-
-
-def shift_masks_to_crop(instance_masks, bbox):
-    return [
-        cropped
-        for mask in instance_masks
-        if (cropped := crop_to_bbox(mask, bbox)).any()
     ]

@@ -11,6 +11,12 @@ from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
 def get_barnacle_maskrcnn(
     num_classes=2, freeze_backbone=True, pretrained=True, image_size=512
 ):
+    """Build a two-class Mask R-CNN with fresh box and mask heads.
+
+    Training starts from COCO weights and normally freezes the backbone.
+    Use pretrained=False before loading a saved checkpoint to avoid downloading
+    initial weights. image_size controls TorchVision resizing, not tile selection.
+    """
     model = torchvision.models.detection.maskrcnn_resnet50_fpn(
         weights=MaskRCNN_ResNet50_FPN_Weights.DEFAULT if pretrained else None,
         weights_backbone=None,
@@ -40,6 +46,6 @@ def get_barnacle_maskrcnn(
         model.roi_heads.mask_predictor.conv5_mask.in_channels, 256, num_classes
     )
     if freeze_backbone:
-        for p in model.backbone.parameters():
-            p.requires_grad = False
+        for parameter in model.backbone.parameters():
+            parameter.requires_grad = False
     return model

@@ -38,6 +38,7 @@ a {
   color: var(--accent);
   text-underline-offset: 3px;
 }
+/* Keep the navigation compact so the photograph gets most of the viewport. */
 header {
   height: 54px;
   display: flex;
@@ -85,6 +86,7 @@ h1 {
   color: var(--muted);
   font-size: 13px;
 }
+/* Controls scroll independently on desktop; the photograph stays in view. */
 .workspace {
   display: grid;
   grid-template-columns: 274px minmax(0, 1fr);
@@ -320,6 +322,7 @@ kbd {
   font-size: 31px;
   letter-spacing: -1px;
 }
+/* Canvas drawing uses CSS pixels; app.js handles device-pixel scaling. */
 .canvas-wrap {
   position: relative;
   flex: 1;

@@ -1,5 +1,8 @@
-/* Counting logic is separate from canvas/UI so it can be regression tested. */
+/* Shared counting rules. Nothing here reads the DOM or changes a review.
+ * The Python pipeline and browser both include centroids on the frame boundary.
+ */
 (function (root) {
+  // Ray casting with an explicit edge check: boundary points count as inside.
   function inside(polygon, point) {
     let hit = false;
     const [x, y] = point;
@@ -15,11 +18,12 @@
         y <= Math.max(ay, by)
       )
         return true;
-      if (ay > y != by > y && x < ((bx - ax) * (y - ay)) / (by - ay) + ax)
+      if (ay > y !== by > y && x < ((bx - ax) * (y - ay)) / (by - ay) + ax)
         hit = !hit;
     }
     return hit;
   }
+  // All turns must have the same sign; reject crossed or collinear frame corners.
   function convex(polygon) {
     if (polygon.length !== 4) return false;
     let sign = 0;
@@ -35,24 +39,25 @@
     }
     return true;
   }
-  function accepted(doc, state) {
-    const removed = new Set(state.removed);
-    return doc.instances.filter(
+  // Hiding proposals by score or region never deletes their correction history.
+  function accepted(proposals, review) {
+    const removed = new Set(review.removed);
+    return proposals.instances.filter(
       (p) =>
-        p.score >= state.threshold &&
+        p.score >= review.threshold &&
         !removed.has(p.id) &&
-        inside(state.polygon, p.center),
+        inside(review.polygon, p.center),
     );
   }
-  function manualInside(state) {
-    return state.manual.filter((p) => inside(state.polygon, p.center));
+  function manualInside(review) {
+    return review.manual.filter((p) => inside(review.polygon, p.center));
   }
-  function counts(doc, state) {
-    const eligible = doc.instances.filter(
-      (p) => p.score >= state.threshold && inside(state.polygon, p.center),
+  function counts(proposals, review) {
+    const eligible = proposals.instances.filter(
+      (p) => p.score >= review.threshold && inside(review.polygon, p.center),
     );
-    const kept = accepted(doc, state),
-      manual = manualInside(state);
+    const kept = accepted(proposals, review),
+      manual = manualInside(review);
     return {
       proposals: eligible.length,
       removed: eligible.length - kept.length,
@@ -60,15 +65,16 @@
       total: kept.length + manual.length,
     };
   }
-  function validate(doc) {
+  // Check imported JSON before drawing or accepting any saved edits.
+  function validate(proposals) {
     if (
-      doc.schema_version !== 1 ||
-      !Number.isInteger(doc.width) ||
-      !Number.isInteger(doc.height) ||
-      doc.width < 1 ||
-      doc.height < 1 ||
-      doc.width > 30000 ||
-      doc.height > 30000
+      proposals.schema_version !== 1 ||
+      !Number.isInteger(proposals.width) ||
+      !Number.isInteger(proposals.height) ||
+      proposals.width < 1 ||
+      proposals.height < 1 ||
+      proposals.width > 30000 ||
+      proposals.height > 30000
     )
       throw Error("Unsupported prediction file or image dimensions.");
     const point = (p) =>
@@ -77,18 +83,21 @@
       p.every(Number.isFinite) &&
       p[0] >= 0 &&
       p[1] >= 0 &&
-      p[0] < doc.width &&
-      p[1] < doc.height;
+      p[0] < proposals.width &&
+      p[1] < proposals.height;
     if (
-      !Array.isArray(doc.polygon) ||
-      !doc.polygon.every(point) ||
-      !convex(doc.polygon)
+      !Array.isArray(proposals.polygon) ||
+      !proposals.polygon.every(point) ||
+      !convex(proposals.polygon)
     )
       throw Error("The frame must be a convex four-corner polygon.");
-    if (!Array.isArray(doc.instances) || doc.instances.length > 50000)
+    if (
+      !Array.isArray(proposals.instances) ||
+      proposals.instances.length > 50000
+    )
       throw Error("Invalid proposal list.");
     const ids = new Set();
-    for (const p of doc.instances) {
+    for (const p of proposals.instances) {
       if (
         typeof p.id !== "string" ||
         ids.has(p.id) ||
@@ -107,14 +116,14 @@
         if (!Array.isArray(polygon) || !polygon.every(point))
           throw Error("Invalid mask polygon.");
     }
-    return doc;
+    return proposals;
   }
-  function initial(doc) {
+  function initial(proposals) {
     return {
       threshold: 0.5,
       removed: [],
       manual: [],
-      polygon: doc.polygon.map((p) => p.slice()),
+      polygon: proposals.polygon.map((p) => p.slice()),
       events: [],
     };
   }

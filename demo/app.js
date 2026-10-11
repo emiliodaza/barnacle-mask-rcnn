@@ -7,22 +7,23 @@ async function sha256(value) {
     b.toString(16).padStart(2, "0"),
   ).join("");
 }
-const C = BarnacleCore,
-  $ = (id) => document.getElementById(id),
-  canvas = $("canvas"),
-  ctx = canvas.getContext("2d");
-let doc = null,
-  state = null,
-  image = null,
-  mode = "remove",
-  view = { x: 0, y: 0, scale: 1 },
-  history = [],
-  tile = -1,
-  tiles = [],
-  pendingCorners = [],
-  drag = null,
-  loadedToken = 0,
-  sampleKey = "unseen";
+const reviewLogic = BarnacleCore;
+const byId = (id) => document.getElementById(id);
+const canvas = byId("canvas");
+const ctx = canvas.getContext("2d");
+// Proposals stay unchanged. Corrections live separately so exports can explain the count.
+let proposals = null;
+let reviewState = null;
+let image = null;
+let mode = "remove";
+let view = { x: 0, y: 0, scale: 1 };
+let history = [];
+let tile = -1;
+let tiles = [];
+let pendingCorners = [];
+let drag = null;
+let loadedToken = 0;
+let sampleKey = "unseen";
 const help = {
   remove:
     "Click a proposal to remove it. Enable removed outlines to restore one.",
@@ -31,28 +32,29 @@ const help = {
   frame:
     "Click the four inner frame corners in perimeter order. The old frame stays active until all four are valid.",
 };
-function status(text) {
-  $("status").textContent = text;
+function setStatus(text) {
+  byId("status").textContent = text;
 }
-function remember() {
-  if (!state) return;
+function saveReview() {
+  if (!reviewState) return;
   try {
     localStorage.setItem(
       "barnacle-review-v1:" + sampleKey,
-      JSON.stringify(state),
+      JSON.stringify(reviewState),
     );
   } catch {
-    status(
+    setStatus(
       "Browser storage unavailable; export your corrections before leaving.",
     );
   }
 }
-function mutate(action, details, fn) {
-  history.push(JSON.parse(JSON.stringify(state)));
-  fn();
-  state.events.push({ action, details, time: new Date().toISOString() });
-  remember();
-  render();
+// Snapshot before each edit; undo restores the count but keeps the audit history.
+function editReview(action, details, applyChange) {
+  history.push(JSON.parse(JSON.stringify(reviewState)));
+  applyChange();
+  reviewState.events.push({ action, details, time: new Date().toISOString() });
+  saveReview();
+  updateReviewDisplay();
 }
 let canvasSize = null;
 function resize() {
@@ -62,12 +64,12 @@ function resize() {
     canvasSize &&
     canvasSize.width > 50 &&
     canvasSize.height > 70 &&
-    state &&
+    reviewState &&
     r.width > 50 &&
     r.height > 70
   ) {
     // Keep the same image center and relative zoom when the workspace resizes.
-    const box = bounds(state.polygon);
+    const box = bounds(reviewState.polygon);
     const fitScale = (size) =>
       Math.min(
         (size.width - 50) / (box.r - box.x),
@@ -83,7 +85,7 @@ function resize() {
   canvas.width = Math.round(r.width * dpr);
   canvas.height = Math.round(r.height * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  draw();
+  drawCanvas();
 }
 function bounds(polygon) {
   return {
@@ -101,44 +103,47 @@ function fit(box) {
   );
   view.x = (r.width - (box.r - box.x) * view.scale) / 2 - box.x * view.scale;
   view.y = (r.height - (box.b - box.y) * view.scale) / 2 - box.y * view.scale;
-  draw();
+  drawCanvas();
 }
 function fitFrame() {
-  if (!state) return;
+  if (!reviewState) return;
   tile = -1;
-  fit(bounds(state.polygon));
-  $("tile-position").textContent = "Overview";
+  fit(bounds(reviewState.polygon));
+  byId("tile-position").textContent = "Overview";
 }
 function path(polygon) {
   ctx.beginPath();
   polygon.forEach((p, i) => (i ? ctx.lineTo(...p) : ctx.moveTo(...p)));
   ctx.closePath();
 }
-function draw() {
+function drawCanvas() {
   const r = canvas.getBoundingClientRect();
   ctx.clearRect(0, 0, r.width, r.height);
-  if (!image || !state) return;
+  if (!image || !reviewState) return;
   ctx.save();
   ctx.translate(view.x, view.y);
   ctx.scale(view.scale, view.scale);
-  ctx.drawImage(image, 0, 0, doc.width, doc.height);
+  ctx.drawImage(image, 0, 0, proposals.width, proposals.height);
   // Dim the photograph outside the active scientific region.
   ctx.beginPath();
-  ctx.rect(0, 0, doc.width, doc.height);
-  const p = state.polygon;
+  ctx.rect(0, 0, proposals.width, proposals.height);
+  const p = reviewState.polygon;
   ctx.moveTo(...p[0]);
   for (let i = 1; i < p.length; i++) ctx.lineTo(...p[i]);
   ctx.closePath();
   ctx.fillStyle = "rgba(3,18,17,.6)";
   ctx.fill("evenodd");
-  const removed = new Set(state.removed),
+  const removed = new Set(reviewState.removed),
     line = 1.15 / view.scale;
-  if ($("show-masks").checked)
-    for (const inst of doc.instances) {
-      if (inst.score < state.threshold || !C.inside(state.polygon, inst.center))
+  if (byId("show-masks").checked)
+    for (const inst of proposals.instances) {
+      if (
+        inst.score < reviewState.threshold ||
+        !reviewLogic.inside(reviewState.polygon, inst.center)
+      )
         continue;
       const deleted = removed.has(inst.id);
-      if (deleted && !$("show-removed").checked) continue;
+      if (deleted && !byId("show-removed").checked) continue;
       ctx.strokeStyle = deleted ? "#ff8767" : "#3dd2ac";
       ctx.lineWidth = line;
       ctx.fillStyle = deleted
@@ -154,9 +159,9 @@ function draw() {
   ctx.setLineDash([]);
   ctx.strokeStyle = "#f3ca79";
   ctx.lineWidth = 2 / view.scale;
-  path(state.polygon);
+  path(reviewState.polygon);
   ctx.stroke();
-  for (const p of C.manualInside(state)) {
+  for (const p of reviewLogic.manualInside(reviewState)) {
     ctx.strokeStyle = "#ff8767";
     ctx.fillStyle = "rgba(255,135,103,.2)";
     ctx.lineWidth = 1.5 / view.scale;
@@ -184,19 +189,19 @@ function draw() {
     );
   }
   ctx.restore();
-  $("zoom-label").textContent = Math.round(view.scale * 100) + "%";
+  byId("zoom-label").textContent = Math.round(view.scale * 100) + "%";
 }
-function render() {
-  if (!doc || !state) return;
-  const n = C.counts(doc, state);
-  $("final-count").textContent = n.total.toLocaleString();
-  $("proposal-count").textContent = n.proposals.toLocaleString();
-  $("removed-count").textContent = n.removed;
-  $("manual-count").textContent = n.manual;
-  $("threshold").value = state.threshold;
-  $("threshold-value").textContent = state.threshold.toFixed(2);
-  $("undo").disabled = !history.length;
-  draw();
+function updateReviewDisplay() {
+  if (!proposals || !reviewState) return;
+  const counts = reviewLogic.counts(proposals, reviewState);
+  byId("final-count").textContent = counts.total.toLocaleString();
+  byId("proposal-count").textContent = counts.proposals.toLocaleString();
+  byId("removed-count").textContent = counts.removed;
+  byId("manual-count").textContent = counts.manual;
+  byId("threshold").value = reviewState.threshold;
+  byId("threshold-value").textContent = reviewState.threshold.toFixed(2);
+  byId("undo").disabled = !history.length;
+  drawCanvas();
 }
 function setMode(next) {
   mode = next;
@@ -206,88 +211,91 @@ function setMode(next) {
     b.classList.toggle("active", selected);
     b.setAttribute("aria-pressed", String(selected));
   });
-  $("tool-help").textContent = help[mode];
+  byId("tool-help").textContent = help[mode];
   canvas.style.cursor =
     mode === "pan" ? "grab" : mode === "remove" ? "pointer" : "crosshair";
-  draw();
+  drawCanvas();
 }
-function screenPoint(e) {
+// Canvas coordinates are CSS pixels. Saved points always use original photo pixels.
+function imagePointFromEvent(e) {
   const r = canvas.getBoundingClientRect();
   return [
     (e.clientX - r.left - view.x) / view.scale,
     (e.clientY - r.top - view.y) / view.scale,
   ];
 }
-function click(point) {
-  if (!state) return;
+function handleImageClick(point) {
+  if (!reviewState) return;
   if (mode === "frame") {
     if (
       point[0] < 0 ||
       point[1] < 0 ||
-      point[0] >= doc.width ||
-      point[1] >= doc.height
+      point[0] >= proposals.width ||
+      point[1] >= proposals.height
     ) {
-      status("Choose corners inside the photograph.");
+      setStatus("Choose corners inside the photograph.");
       return;
     }
     pendingCorners.push(point.map(Math.round));
     if (pendingCorners.length === 4) {
-      if (!C.convex(pendingCorners)) {
+      if (!reviewLogic.convex(pendingCorners)) {
         pendingCorners = [];
-        status(
+        setStatus(
           "Corners must form a convex quadrilateral in perimeter order. Try again.",
         );
-        draw();
+        drawCanvas();
         return;
       }
       const polygon = pendingCorners.map((p) => p.slice());
-      mutate("set_frame", { polygon }, () => {
-        state.polygon = polygon;
+      editReview("set_frame", { polygon }, () => {
+        reviewState.polygon = polygon;
       });
       pendingCorners = [];
       buildTiles();
-      status(
+      setStatus(
         "Frame changed. Export its region JSON before running inference on a new photograph.",
       );
       setMode("remove");
-    } else status(`Frame corner ${pendingCorners.length}/4 selected.`);
-    draw();
+    } else setStatus(`Frame corner ${pendingCorners.length}/4 selected.`);
+    drawCanvas();
     return;
   }
-  if (!C.inside(state.polygon, point)) {
-    status("Counts are restricted to the active frame interior.");
+  if (!reviewLogic.inside(reviewState.polygon, point)) {
+    setStatus("Counts are restricted to the active frame interior.");
     return;
   }
   if (mode === "add") {
-    const existing = state.manual.find(
+    const existing = reviewState.manual.find(
       (p) =>
         Math.hypot(p.center[0] - point[0], p.center[1] - point[1]) <
         10 / view.scale,
     );
     if (existing) {
-      mutate("remove_manual_point", { id: existing.id }, () => {
-        state.manual = state.manual.filter((p) => p.id !== existing.id);
+      editReview("remove_manual_point", { id: existing.id }, () => {
+        reviewState.manual = reviewState.manual.filter(
+          (p) => p.id !== existing.id,
+        );
       });
-      status("Manual point removed.");
+      setStatus("Manual point removed.");
     } else {
       const item = {
-        id: "manual-" + Date.now() + "-" + state.manual.length,
+        id: "manual-" + Date.now() + "-" + reviewState.manual.length,
         center: point.map((v) => Math.round(v * 10) / 10),
       };
-      mutate("add_manual_point", item, () => state.manual.push(item));
-      status("Missed barnacle marked.");
+      editReview("add_manual_point", item, () => reviewState.manual.push(item));
+      setStatus("Missed barnacle marked.");
     }
     return;
   }
   if (mode === "remove") {
-    const removed = new Set(state.removed);
-    const found = doc.instances
+    const removed = new Set(reviewState.removed);
+    const found = proposals.instances
       .filter(
         (p) =>
-          p.score >= state.threshold &&
-          C.inside(state.polygon, p.center) &&
-          (removed.has(p.id) ? $("show-removed").checked : true) &&
-          p.polygons.some((poly) => C.inside(poly, point)),
+          p.score >= reviewState.threshold &&
+          reviewLogic.inside(reviewState.polygon, p.center) &&
+          (removed.has(p.id) ? byId("show-removed").checked : true) &&
+          p.polygons.some((poly) => reviewLogic.inside(poly, point)),
       )
       .sort(
         (a, b) =>
@@ -295,28 +303,28 @@ function click(point) {
           Math.hypot(b.center[0] - point[0], b.center[1] - point[1]),
       )[0];
     if (!found) {
-      status(
+      setStatus(
         "No visible mask at that point. Use Mark missed to add a barnacle.",
       );
       return;
     }
     const restore = removed.has(found.id);
-    mutate(
+    editReview(
       restore ? "restore_proposal" : "remove_proposal",
       { id: found.id },
       () => {
-        state.removed = restore
-          ? state.removed.filter((id) => id !== found.id)
-          : [...state.removed, found.id];
+        reviewState.removed = restore
+          ? reviewState.removed.filter((id) => id !== found.id)
+          : [...reviewState.removed, found.id];
       },
     );
-    status(
+    setStatus(
       restore ? "Proposal restored." : "Proposal removed; Undo is available.",
     );
   }
 }
 function buildTiles() {
-  const b = bounds(state.polygon);
+  const b = bounds(reviewState.polygon);
   tiles = [];
   for (let y = b.y; y < b.b; y += 512)
     for (let x = b.x; x < b.r; x += 512)
@@ -332,9 +340,9 @@ function moveTile(direction) {
   if (!tiles.length) return;
   tile = (tile + direction + tiles.length) % tiles.length;
   fit(tiles[tile]);
-  $("tile-position").textContent = `${tile + 1} / ${tiles.length}`;
-  status(
-    `Inspecting tile ${tile + 1} of ${tiles.length}. Tile navigation does not certify a completed review.`,
+  byId("tile-position").textContent = `${tile + 1} / ${tiles.length}`;
+  setStatus(
+    `Inspecting tile ${tile + 1} of ${tiles.length}. Check all barnacles in this tile.`,
   );
 }
 function download(name, text, type) {
@@ -344,37 +352,40 @@ function download(name, text, type) {
   link.click();
   setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }
+// Tile navigation is not proof of review completion, so every export stays provisional.
 function exportReview() {
-  const n = C.counts(doc, state);
+  const counts = reviewLogic.counts(proposals, reviewState);
   const value = {
     schema_version: 1,
     exported_at: new Date().toISOString(),
     review_complete: false,
-    notice: "Provisional review; no verified completion or time-saving claim.",
+    notice: "Provisional count; review completion has not been verified.",
     prediction_source: sampleKey,
-    checkpoint_sha256: doc.checkpoint_sha256 || null,
-    model_train_images: doc.model_train_images || [],
+    checkpoint_sha256: proposals.checkpoint_sha256 || null,
+    model_train_images: proposals.model_train_images || [],
     image: {
-      width: doc.width,
-      height: doc.height,
-      name: doc.image_original_name || doc.image,
-      sha256: doc.image_sha256 || null,
+      width: proposals.width,
+      height: proposals.height,
+      name: proposals.image_original_name || proposals.image,
+      sha256: proposals.image_sha256 || null,
     },
-    count_rule: doc.count_rule,
-    threshold: state.threshold,
-    polygon: state.polygon,
-    counts: n,
-    accepted_model_ids: C.accepted(doc, state).map((p) => p.id),
-    removed_model_ids: state.removed,
-    manual_points: state.manual,
-    events: state.events,
+    count_rule: proposals.count_rule,
+    threshold: reviewState.threshold,
+    polygon: reviewState.polygon,
+    counts,
+    accepted_model_ids: reviewLogic
+      .accepted(proposals, reviewState)
+      .map((p) => p.id),
+    removed_model_ids: reviewState.removed,
+    manual_points: reviewState.manual,
+    events: reviewState.events,
   };
   download(
     "barnacle-review.json",
     JSON.stringify(value, null, 2),
     "application/json",
   );
-  status("Review and audit history exported.");
+  setStatus("Review and audit history exported.");
 }
 function safeImageUrl(value) {
   if (typeof value !== "string")
@@ -389,11 +400,13 @@ function safeImageUrl(value) {
     );
   return url.href;
 }
+// A fingerprint prevents corrections from being applied to a different model output.
 async function showDocument(next, key, imageUrl) {
+  // Ignore a slow image load if the user has already selected another sample.
   const token = ++loadedToken;
-  $("loading").classList.remove("hidden");
+  byId("loading").classList.remove("hidden");
   try {
-    C.validate(next);
+    reviewLogic.validate(next);
     const fingerprint = await sha256(
       JSON.stringify({
         image_sha256: next.image_sha256,
@@ -419,10 +432,10 @@ async function showDocument(next, key, imageUrl) {
       picture.naturalHeight !== next.height
     )
       throw Error("Photo dimensions do not match the prediction coordinates.");
-    doc = next;
+    proposals = next;
     image = picture;
     sampleKey = key + ":" + fingerprint;
-    state = C.initial(doc);
+    reviewState = reviewLogic.initial(proposals);
     history = [];
     try {
       const saved = JSON.parse(
@@ -436,18 +449,20 @@ async function showDocument(next, key, imageUrl) {
         Array.isArray(saved.removed) &&
         Array.isArray(saved.manual) &&
         saved.polygon?.length === 4 &&
-        C.convex(saved.polygon) &&
+        reviewLogic.convex(saved.polygon) &&
         Array.isArray(saved.events)
       ) {
-        state = saved;
+        reviewState = saved;
       }
-    } catch {}
-    const train = (doc.model_train_images || []).join(", ");
-    $("source-note").textContent =
+    } catch {
+      // An unreadable saved review should not stop a fresh review from loading.
+    }
+    const train = (proposals.model_train_images || []).join(", ");
+    byId("source-note").textContent =
       key === "unseen"
         ? `No reference labels. Trained on ${train}.`
         : `Training photographs: ${train || "none"}.`;
-    $("image-label").textContent =
+    byId("image-label").textContent =
       {
         unseen: "unseen_img1.png",
         heldout_1: "img1.png · held out",
@@ -457,13 +472,15 @@ async function showDocument(next, key, imageUrl) {
     setMode("remove");
     resize();
     fitFrame();
-    render();
-    $("loading").classList.add("hidden");
-    status("Click proposals to correct the count. Changes are saved locally.");
+    updateReviewDisplay();
+    byId("loading").classList.add("hidden");
+    setStatus(
+      "Click proposals to correct the count. Changes are saved locally.",
+    );
   } catch (error) {
     if (token === loadedToken) {
-      $("loading").textContent = error.message;
-      status(error.message);
+      byId("loading").textContent = error.message;
+      setStatus(error.message);
     }
   }
 }
@@ -477,55 +494,59 @@ async function loadSample(name) {
     const next = await response.json();
     await showDocument(next, name, safeImageUrl(next.image));
   } catch (error) {
-    status(error.message);
-    $("loading").textContent = error.message;
+    setStatus(error.message);
+    byId("loading").textContent = error.message;
   }
 }
-$("sample").addEventListener("change", () => loadSample($("sample").value));
+// Wire the controls after defining the review and drawing helpers.
+byId("sample").addEventListener("change", () =>
+  loadSample(byId("sample").value),
+);
 document
   .querySelectorAll("[data-mode]")
   .forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
-$("threshold").addEventListener("change", () => {
-  const threshold = Number($("threshold").value);
-  mutate("set_threshold", { threshold }, () => {
-    state.threshold = threshold;
+byId("threshold").addEventListener("change", () => {
+  const threshold = Number(byId("threshold").value);
+  editReview("set_threshold", { threshold }, () => {
+    reviewState.threshold = threshold;
   });
-  status(
-    "Threshold changed; this is exploratory review, not a new measured accuracy result.",
-  );
+  setStatus("Score cutoff changed. Check the newly visible proposals.");
 });
-$("threshold").addEventListener(
+byId("threshold").addEventListener(
   "input",
   () =>
-    ($("threshold-value").textContent = Number($("threshold").value).toFixed(
-      2,
-    )),
+    (byId("threshold-value").textContent = Number(
+      byId("threshold").value,
+    ).toFixed(2)),
 );
-$("undo").addEventListener("click", () => {
+byId("undo").addEventListener("click", () => {
   if (!history.length) return;
-  const events = state.events.slice(),
+  const events = reviewState.events.slice(),
     previous = history.pop();
-  state = previous;
-  state.events = events;
-  state.events.push({ action: "undo", time: new Date().toISOString() });
-  remember();
+  reviewState = previous;
+  reviewState.events = events;
+  reviewState.events.push({ action: "undo", time: new Date().toISOString() });
+  saveReview();
   buildTiles();
-  render();
-  status("Last correction undone.");
+  updateReviewDisplay();
+  setStatus("Last correction undone.");
 });
-$("fit").addEventListener("click", fitFrame);
-$("prev-tile").addEventListener("click", () => moveTile(-1));
-$("next-tile").addEventListener("click", () => moveTile(1));
+byId("fit").addEventListener("click", () => {
+  fitFrame();
+  setStatus("Showing the whole frame.");
+});
+byId("prev-tile").addEventListener("click", () => moveTile(-1));
+byId("next-tile").addEventListener("click", () => moveTile(1));
 for (const id of ["show-masks", "show-removed"])
-  $(id).addEventListener("change", draw);
-$("export-json").addEventListener("click", exportReview);
-$("export-csv").addEventListener("click", () => {
+  byId(id).addEventListener("change", drawCanvas);
+byId("export-json").addEventListener("click", exportReview);
+byId("export-csv").addEventListener("click", () => {
   const rows = [
     ["id", "origin", "x_original_pixel", "y_original_pixel", "model_score"],
   ];
-  for (const p of C.accepted(doc, state))
+  for (const p of reviewLogic.accepted(proposals, reviewState))
     rows.push([p.id, "model", ...p.center, p.score]);
-  for (const p of C.manualInside(state))
+  for (const p of reviewLogic.manualInside(reviewState))
     rows.push([p.id, "manual", ...p.center, ""]);
   const csv = rows
     .map((row) =>
@@ -533,16 +554,16 @@ $("export-csv").addEventListener("click", () => {
     )
     .join("\n");
   download("barnacle-accepted-points.csv", csv, "text/csv");
-  status("Accepted points exported in original image coordinates.");
+  setStatus("Accepted points exported in original image coordinates.");
 });
-$("export-region").addEventListener("click", () =>
+byId("export-region").addEventListener("click", () =>
   download(
     "frame-region.json",
     JSON.stringify(
       {
-        polygon: state.polygon,
-        width: doc.width,
-        height: doc.height,
+        polygon: reviewState.polygon,
+        width: proposals.width,
+        height: proposals.height,
         source: "human-selected frame interior",
       },
       null,
@@ -551,28 +572,28 @@ $("export-region").addEventListener("click", () =>
     "application/json",
   ),
 );
-$("reset").addEventListener("click", () => {
-  mutate("reset_corrections", {}, () => {
-    const events = state.events;
-    state = C.initial(doc);
-    state.events = events;
+byId("reset").addEventListener("click", () => {
+  editReview("reset_corrections", {}, () => {
+    const events = reviewState.events;
+    reviewState = reviewLogic.initial(proposals);
+    reviewState.events = events;
   });
   buildTiles();
   fitFrame();
-  status("Corrections reset. Undo can restore them.");
+  setStatus("Corrections reset. Undo can restore them.");
 });
 canvas.addEventListener("pointerdown", (e) => {
-  if (!state) return;
+  if (!reviewState) return;
   if (mode === "pan") {
     drag = { sx: e.clientX, sy: e.clientY, x: view.x, y: view.y };
     canvas.setPointerCapture(e.pointerId);
-  } else click(screenPoint(e));
+  } else handleImageClick(imagePointFromEvent(e));
 });
 canvas.addEventListener("pointermove", (e) => {
   if (!drag) return;
   view.x = drag.x + e.clientX - drag.sx;
   view.y = drag.y + e.clientY - drag.sy;
-  draw();
+  drawCanvas();
 });
 canvas.addEventListener("pointerup", () => {
   drag = null;
@@ -583,9 +604,9 @@ canvas.addEventListener("pointercancel", () => {
 canvas.addEventListener(
   "wheel",
   (e) => {
-    if (!state) return;
+    if (!reviewState) return;
     e.preventDefault();
-    const point = screenPoint(e),
+    const point = imagePointFromEvent(e),
       r = canvas.getBoundingClientRect();
     view.scale = Math.max(
       0.08,
@@ -593,13 +614,13 @@ canvas.addEventListener(
     );
     view.x = e.clientX - r.left - point[0] * view.scale;
     view.y = e.clientY - r.top - point[1] * view.scale;
-    draw();
+    drawCanvas();
   },
   { passive: false },
 );
 let customPhotoUrl = null,
   customPhotoHash = null;
-$("photo-file").addEventListener("change", async (e) => {
+byId("photo-file").addEventListener("change", async (e) => {
   const file = e.target.files[0];
   if (!file) return;
   customPhotoHash = await sha256(await file.arrayBuffer());
@@ -630,11 +651,11 @@ $("photo-file").addEventListener("change", async (e) => {
   };
   im.src = customPhotoUrl;
 });
-$("prediction-file").addEventListener("change", async (e) => {
+byId("prediction-file").addEventListener("change", async (e) => {
   const file = e.target.files[0];
   if (!file) return;
   try {
-    const next = C.validate(JSON.parse(await file.text()));
+    const next = reviewLogic.validate(JSON.parse(await file.text()));
     if (
       customPhotoUrl &&
       next.image_sha256 &&
@@ -650,7 +671,7 @@ $("prediction-file").addEventListener("change", async (e) => {
       url,
     );
   } catch (error) {
-    status(error.message);
+    setStatus(error.message);
   }
 });
 document.addEventListener("keydown", (e) => {
@@ -660,14 +681,14 @@ document.addEventListener("keydown", (e) => {
   if (modes[e.key.toLowerCase()]) setMode(modes[e.key.toLowerCase()]);
   if ((e.ctrlKey || e.metaKey) && e.key === "z") {
     e.preventDefault();
-    $("undo").click();
+    byId("undo").click();
   }
 });
 new ResizeObserver(resize).observe(canvas.parentElement);
 fetch("../results/report.json")
   .then((r) => r.json())
   .then((report) => {
-    const body = $("metrics-body");
+    const body = byId("metrics-body");
     body.replaceChildren();
     for (const row of report.metrics.filter(
       (m) => m.method === "mask_rcnn" && m.score_threshold === 0.5,
@@ -688,7 +709,7 @@ fetch("../results/report.json")
   })
   .catch(
     () =>
-      ($("metrics-body").textContent =
+      (byId("metrics-body").textContent =
         "See results/metrics.csv in the repository for measured results."),
   );
 loadSample("unseen");

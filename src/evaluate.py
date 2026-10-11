@@ -6,6 +6,13 @@ from src.instances import mask_iou
 
 
 def evaluate_instances(predictions, reference, iou_threshold=0.5):
+    """Match predicted and reference masks once each, then compute count metrics.
+
+    Maximize valid pair count before using IoU to break ties. Return metrics and
+    (prediction index, reference index, IoU) matches. Empty precision/recall are
+    zero; relative error is None when there is no reference count. Reference
+    annotations are incomplete, so these scores measure annotation agreement.
+    """
     if not 0 < iou_threshold <= 1:
         raise ValueError("IoU threshold must be in (0,1].")
     overlaps = np.zeros((len(predictions), len(reference)), dtype=np.float32)
@@ -21,7 +28,8 @@ def evaluate_instances(predictions, reference, iou_threshold=0.5):
             )[0]
             for j in possible:
                 overlaps[i, j] = mask_iou(p, reference[j])
-    # Cardinality dominates IoU tie-breaking, including adversarial crossing matches.
+    # One extra valid match must outweigh every possible IoU tie-break.
+    # Maximizing IoU alone can sacrifice two valid pairs for one stronger overlap.
     valid = overlaps >= iou_threshold
     reward = valid.astype(float) * (
         max(len(predictions), len(reference)) + 1 + overlaps

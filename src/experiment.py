@@ -19,11 +19,13 @@ from src.visualize import save_comparison
 
 
 def write_json(path, value):
+    """Write readable results and reject NaN values rather than exporting invalid JSON."""
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     Path(path).write_text(json.dumps(value, indent=2, allow_nan=False) + "\n")
 
 
 def audit_annotations():
+    """Compare contour recovery with and without closing before interpreting accuracy."""
     records = []
     for i in [1, 2]:
         image = read_rgb(f"data/img{i}.png")
@@ -62,6 +64,7 @@ def audit_annotations():
 
 def demo_image(image, name):
     # Preserve original coordinates; JPEG only reduces browser asset size.
+    """Save a smaller JPEG without resizing: proposal coordinates must still line up."""
     cv2.imwrite(
         f"demo/assets/{name}.jpg",
         cv2.cvtColor(image, cv2.COLOR_RGB2BGR),
@@ -71,6 +74,7 @@ def demo_image(image, name):
 
 
 def export_demo(name, image, polygon, instances, timing, config, checkpoint):
+    """Pair cached proposals with a display image and the original photo hash."""
     original_name = {
         "unseen": "unseen_img1.png",
         "heldout_1": "img1.png",
@@ -97,6 +101,12 @@ def export_demo(name, image, polygon, instances, timing, config, checkpoint):
 
 
 def run(epochs=5, reuse=False, train_final=True):
+    """Run both directional folds and, optionally, a separate unlabeled demonstration.
+
+    --reuse skips training only when a checkpoint has matching image IDs and
+    epochs. It still reruns inference and replaces result files; it does not
+    load previously measured metrics. The primary score cutoff remains 0.5.
+    """
     start = time.perf_counter()
     torch.set_num_threads(2)
     audit = audit_annotations()

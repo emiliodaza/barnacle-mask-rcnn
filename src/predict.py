@@ -12,10 +12,9 @@ from src.model import get_barnacle_maskrcnn
 from src.regions import load_region, polygon_mask, region_bbox, tile_boxes, keep_inside
 from src.train import PREPROCESSORS
 
-load_rgb_image = read_rgb
-
 
 def load_model(checkpoint_path, device="cpu"):
+    """Restore weights and training settings without fetching pretrained weights."""
     checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
     config = checkpoint.get("config", {})
     state = checkpoint.get("state_dict", checkpoint)
@@ -38,6 +37,13 @@ def predict_instances(
     device="cpu",
     nms_threshold=0.3,
 ):
+    """Propose barnacles in a selected region without consulting any annotations.
+
+    Mask the region exterior, run overlapping tiles, translate their masks to
+    original coordinates, apply the centroid rule, and remove likely duplicates.
+    Return compact instances and timing/candidate counts. The result is a set
+    of proposals, not a verified scientific count.
+    """
     if not 0 <= score_threshold <= 1 or not 0 <= mask_threshold <= 1:
         raise ValueError("Thresholds must be between zero and one.")
     roi = polygon_mask(polygon, image.shape)
@@ -80,6 +86,10 @@ def predict_barnacles(
     region_file="config/regions.json",
     device="cpu",
 ):
+    """Load a photo, selected frame, and checkpoint, then return review inputs.
+
+    density_pixels is a count per image pixel; it is not a physical density.
+    """
     torch.set_num_threads(2)
     image = read_rgb(image_path)
     polygon = load_region(image_path, region_file)
@@ -111,6 +121,11 @@ def predict_barnacles(
 
 
 def export_prediction(result, path, image_ref, checkpoint_path=None):
+    """Write proposal JSON for the browser, with source and checkpoint hashes.
+
+    image_ref must resolve from the demo page or be loaded separately by the user.
+    Polygon outlines simplify display; evaluation uses the original binary masks.
+    """
     document = {
         "schema_version": 1,
         "image": image_ref,

@@ -10,6 +10,7 @@ from src.regions import keep_inside, load_region, polygon_mask, region_bbox, til
 
 
 def read_rgb(path):
+    """Read an RGB uint8 image; OpenCV normally returns BGR."""
     if not Path(path).is_file():
         raise FileNotFoundError(
             f"Cannot read {path}. Copy the original Barnacles images into data/."
@@ -23,6 +24,10 @@ def read_rgb(path):
 
 
 def crop_instance(instance, box):
+    """Place the visible part of a compact instance into a tile-sized mask.
+
+    Both boxes use original coordinates. The returned array uses tile coordinates.
+    """
     x, y, r, b = box
     ix, iy, ir, ib = instance.box
     left, top, right, bottom = max(x, ix), max(y, iy), min(r, ir), min(b, ib)
@@ -35,6 +40,11 @@ def crop_instance(instance, box):
 
 
 def masks_to_target(masks, shape, index):
+    """Build the TorchVision target for one tile, including empty targets.
+
+    Reject masks too narrow to form valid detection boxes. Class 1 is barnacle;
+    class 0 is background. Boxes use exclusive right/bottom coordinates.
+    """
     height, width = shape[:2]
     boxes, valid = [], []
     for mask in masks:
@@ -65,6 +75,13 @@ def masks_to_target(masks, shape, index):
 
 
 class BarnacleDataset(Dataset):
+    """Load paired photos once and construct tile targets only when requested.
+
+    Pass only the training photograph(s): splitting patches here would leak
+    overlapping regions into evaluation. Empty tiles and visible fragments stay
+    in the dataset. Pixels outside the selected frame are blacked out.
+    """
+
     def __init__(
         self,
         image_paths,
@@ -139,6 +156,7 @@ class BarnacleDataset(Dataset):
 
 def make_patches(image, instance_masks, patch_size=512, patch_stride=384):
     # Compatibility helper for small arrays and tests; include negative patches.
+    """Small-array helper for coverage tests; full photos use BarnacleDataset."""
     return [
         {
             "image": image[y:b, x:r],
@@ -149,4 +167,5 @@ def make_patches(image, instance_masks, patch_size=512, patch_stride=384):
 
 
 def collate_fn(batch):
+    """Keep detection targets as a list because each tile has a different count."""
     return tuple(zip(*batch))
