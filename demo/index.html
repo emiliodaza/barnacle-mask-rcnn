@@ -10,17 +10,33 @@
   </head>
   <body>
     <header>
-      <a class="brand" href="./">Barnacle counter</a>
-      <span class="header-note">DALI · Data challenge</span>
+      <a class="brand" href="./">
+        <svg
+          class="brand-mark"
+          viewBox="0 0 40 40"
+          aria-hidden="true"
+          fill="none"
+        >
+          <path d="M20 3 30 7 36 17 33 29 23 36 11 33 4 23 6 11Z" />
+          <path d="m20 10 8 5 1 10-8 5-9-4-2-9Z" />
+          <path
+            d="m20 10 1 9 8 6M21 19l-9 7M21 19l7-4M21 19l-11-2M21 19l0 11"
+          />
+        </svg>
+        Barnacle counter
+      </a>
+      <span class="header-note">Field image review</span>
       <a href="../README.md" class="readme">Project notes</a>
       <button id="export-json" class="header-download">Download review</button>
     </header>
     <main>
       <section class="intro">
-        <h1>Count review</h1>
+        <div class="page-heading">
+          <h1>Review the photograph</h1>
+        </div>
         <p>
-          Check the outlines, remove extras, and mark any barnacles the model
-          missed.
+          Work around the frame. Remove extra outlines and mark the barnacles
+          that were missed.
         </p>
       </section>
       <section class="workspace" aria-label="Barnacle image review">
@@ -53,7 +69,7 @@
             /></label>
           </details>
           <div class="separator"></div>
-          <div class="panel-label">Review tools</div>
+          <div class="panel-label">Corrections</div>
           <label for="threshold"
             >Proposal score cutoff
             <strong id="threshold-value">0.50</strong></label
@@ -71,10 +87,28 @@
           </p>
           <div class="tools" role="group" aria-label="Review tools">
             <button data-mode="remove" class="active">
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M4 8h8" />
+              </svg>
               Remove extra <kbd>D</kbd></button
-            ><button data-mode="add">Mark missed <kbd>A</kbd></button
-            ><button data-mode="pan">Pan image <kbd>P</kbd></button
-            ><button data-mode="frame">Set frame <kbd>F</kbd></button>
+            ><button data-mode="add">
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M4 8h8M8 4v8" />
+              </svg>
+              Mark missed <kbd>A</kbd></button
+            ><button data-mode="pan">
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path
+                  d="M2 8h12M8 2v12M2 8l3-3M2 8l3 3M14 8l-3-3M14 8l-3 3M8 2l-3 3M8 2l3 3M8 14l-3-3M8 14l3-3"
+                />
+              </svg>
+              Pan image <kbd>P</kbd></button
+            ><button data-mode="frame">
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M6 3H3v3M10 3h3v3M3 10v3h3M13 10v3h-3" />
+              </svg>
+              Set frame <kbd>F</kbd>
+            </button>
           </div>
           <p id="tool-help" class="small">
             Click a proposal to remove it. Click a removed outline to restore
@@ -122,7 +156,7 @@
         <div class="image-panel">
           <div class="count-strip">
             <div class="total">
-              <small>Count so far</small><span id="final-count">—</span>
+              <small>Working count</small><span id="final-count">—</span>
             </div>
             <div>
               <span id="proposal-count">—</span><small>proposals</small>
@@ -130,21 +164,21 @@
             <div><span id="removed-count">0</span><small>removed</small></div>
             <div><span id="manual-count">0</span><small>added</small></div>
           </div>
+          <div class="canvas-top">
+            <span id="image-label">Photograph</span
+            ><span id="zoom-label">100%</span>
+          </div>
           <div class="canvas-wrap">
             <canvas
               id="canvas"
               aria-label="Zoomable barnacle photograph with clickable model outlines"
             ></canvas>
             <div id="loading">Loading photograph…</div>
-            <div class="canvas-top">
-              <span id="image-label">Photograph</span
-              ><span id="zoom-label">100%</span>
-            </div>
-            <div class="legend">
-              <span><i class="teal"></i> Proposal</span
-              ><span><i class="coral"></i> Added point</span
-              ><span><i class="gold"></i> Frame interior</span>
-            </div>
+          </div>
+          <div class="legend">
+            <span><i class="teal"></i> Proposal</span
+            ><span><i class="coral"></i> Added point</span
+            ><span><i class="gold"></i> Frame interior</span>
           </div>
           <div class="status-bar">
             <span id="status" role="status" aria-live="polite">Loading…</span
@@ -198,7 +232,7 @@
         </div>
       </details>
       <footer>
-        Research prototype
+        DALI 26F · Research prototype
         <span>Local image review · no photographs are uploaded</span>
       </footer>
     </main>
