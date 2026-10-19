@@ -1,37 +1,45 @@
-# Barnacle instance segmentation and counting
+# Counting barnacles with Mask R-CNN
 
-A prototype for the **DALI Data Challenge 26F**: select a counting region, recover candidate instance masks from the supplied contour annotations, and fine-tune Mask R-CNN to propose barnacle instances in new photographs.
+This is my prototype for the DALI Data Challenge 26F. The goal is to help count barnacles inside a sampling frame by producing separate predicted masks that can be checked over the original photograph.
 
-**Start with [the notebook](barnacle_experiment.ipynb).** It contains the investigation, commented code, saved results, and limitations. Its saved figures can be viewed on GitHub without running the GPU experiment.
+The [notebook](barnacle_experiment.ipynb) follows the experiment from inspecting the blue annotations to reviewing the model's predictions. The saved figures are included, so the results can be read without access to Discovery or a GPU.
 
-## Approach
+## What I tried
 
-1. Inspect matching photograph and annotation crops, then measure the blue outlines in HSV color space.
-2. Recover enclosed regions using connected components and assign each candidate interior an instance ID. These recovered labels are provisional.
-3. Select the inside corners of the sampling frame with sliders and save the coordinates in original-image pixels.
-4. Train a COCO-pretrained **Torchvision Mask R-CNN with a ResNet-50 backbone and Feature Pyramid Network** on image 1. The experiment uses small-object anchors, horizontal flips, mixed precision, and 200 optimizer updates.
-5. Use image 2 to compare nine confidence/mask-threshold combinations. Select by instance F1 at mask IoU 0.5, with count error used to break ties.
-6. Apply the selected thresholds to both unseen photographs and save their predicted counts and segmentation overlays.
+I started by checking how the supplied contours line up with the photographs. I sampled blue annotation pixels in HSV color space, extracted those lines, and used connected components to recover the regions enclosed by them. These regions became candidate instance labels. This recovery step is automatic, so I treat the labels as provisional.
 
-The model receives clean RGB photographs, not the supplied contour images. Contours are used to build the training and validation references. The additional close-up, `unseen_img2.png`, is an unlabeled qualitative stress test.
+I then used sliders to mark the inside of the sampling frame. The selected corners are saved in original-image coordinates and applied to both the photograph and its labels. Image 1 supplies training data; image 2 is kept for validation. The recovered arrays are saved separately so they can be loaded on the GPU without processing the contours again.
 
-## Repository contents
+For the model, I fine-tuned Torchvision's COCO-pretrained Mask R-CNN with a ResNet-50 backbone and Feature Pyramid Network. The experiment uses small-object anchors, horizontal flips, mixed precision, and 200 training updates. After training, I compared nine combinations of detection-confidence and mask thresholds on image 2, selected by instance F1 at mask IoU 0.5. This is an inference-threshold search; I did not run a learning-rate or training-duration sweep.
 
-| Path | Purpose |
-| --- | --- |
-| [`barnacle_experiment.ipynb`](barnacle_experiment.ipynb) | Main notebook: data inspection, annotation recovery, selectors, model experiment, and results. |
-| [`Barnacles/`](Barnacles/) | Input photographs, contour annotations, and the cropped overlay used for inspection. |
-| [`configs/regions.json`](configs/regions.json) | Saved training/validation corners, image dimensions, and split. |
-| [`configs/test_regions.json`](configs/test_regions.json) | Saved corners for both unseen photographs. |
-| [`data/processed/instances.npz`](data/processed/instances.npz) | Recovered NumPy instance label maps, stored under `img1` and `img2`. Background is 0; positive values are instance IDs. |
-| [`outputs/`](outputs/) | Training loss curve, validation search results, segmentation figures, and JSON summaries from the Discovery run. |
-| [`requirements.txt`](requirements.txt) | Python dependencies for the notebook. |
+## What the results show
 
-All current experiment code is in the notebook. Saved coordinates and label maps allow the model section to run without repeating the interactive preparation.
+The validation comparison uses 410 recovered reference instances after resizing, down from 426 before resizing. Both counts exclude the single-pixel candidates removed during preprocessing.
 
-## Viewing the results locally
+| Setting | Confidence | Mask threshold | Precision | Recall | F1 | Predicted count | Count error |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Baseline thresholds | 0.5 | 0.5 | 0.091 | 0.137 | 0.109 | 614 | 204 |
+| Selected by F1 | 0.3 | 0.5 | 0.094 | 0.232 | 0.134 | 1,013 | 603 |
 
-Use **Python 3.10** for the dependency versions in this repository. From the repository root:
+Lowering the confidence threshold improved recall and F1, but the count moved further from the recovered reference total. Choosing thresholds by instance matching therefore revealed a trade-off with count accuracy. Agreement with the reference masks remains weak. The [full threshold search](outputs/validation_tuning.csv) and [validation summary](outputs/validation_summary.json) are saved with the figures.
+
+![Validation photograph, predicted masks, and overlay](outputs/validation_prediction.png)
+
+Unseen image 1 is the most encouraging visual result. Many predicted masks follow individual barnacle interiors across the dense clusters, while the large exposed-rock area receives few predictions. This suggests that useful visual cues carried over to a photograph the model had not trained on. Its predicted count is 1,039; without reference masks, I cannot verify that count.
+
+![Predictions on the wider unseen photograph](outputs/unseen_img1_prediction.png)
+
+The additional close-up is a useful failure case. Some individual barnacles receive several small, partial predictions, making its predicted count of 864 unreliable. The result suggests sensitivity to scale and appearance; this experiment does not isolate perspective as the cause.
+
+![Fragmented predictions on the additional close-up](outputs/unseen_img2_prediction.png)
+
+## Reading or rerunning the notebook
+
+The model ran as Python code in a terminal session on Dartmouth Discovery. I copied its outputs back to the local project and split the model code into notebook cells. The **Results** section reads those saved files; it does not run training again.
+
+### Looking at the existing results
+
+You can read the notebook and figures on GitHub. For a live local notebook, use Python 3.10 for the dependency versions in this repository. From the project root:
 
 ```bash
 python3.10 -m venv .venv
@@ -40,56 +48,45 @@ python -m pip install -r requirements.txt
 jupyter notebook barnacle_experiment.ipynb
 ```
 
-To inspect the existing results, run only the self-contained code cell under **Results**. It reads the committed JSON summaries and PNG figures and does not require CUDA. The earlier inspection and corner-selection sections can also run locally. Interactive sliders require a live notebook kernel; they are not interactive in GitHub's static preview.
+Run only the code cell under **Results** to display the saved comparison and figures. It does not require CUDA. The earlier inspection and region-selection sections can also run locally; their sliders need a live kernel and will not respond in GitHub's static preview.
 
-## Reproducing the model experiment
+### Running the model again
 
-The saved experiment was run on **Dartmouth Discovery**, using Python 3.10, PyTorch **2.1.2+cu118**, Torchvision **0.16.2+cu118**, and an NVIDIA A100 MIG allocation with approximately 40 GB of GPU memory. Another compatible NVIDIA GPU environment can run the same code; cluster access and allocation procedures depend on the host.
+The recorded GPU run used Python 3.10, PyTorch 2.1.2+cu118, Torchvision 0.16.2+cu118, and an NVIDIA A100 MIG allocation with about 40 GB of GPU memory. The code can run in another compatible NVIDIA GPU environment; requesting access to a particular cluster is outside this notebook.
 
-For a fresh Python 3.10 GPU environment, install the recorded CUDA 11.8 PyTorch build **before** the remaining requirements:
+In a fresh Python 3.10 GPU environment, install the recorded CUDA 11.8 PyTorch build first, then the remaining requirements. Use this route instead of the local installation step above:
 
 ```bash
 python -m pip install torch==2.1.2 torchvision==0.16.2 --index-url https://download.pytorch.org/whl/cu118
 python -m pip install -r requirements.txt
 ```
 
-See the [official PyTorch installation commands](https://pytorch.org/get-started/previous-versions/#v212) for other supported builds.
+The command follows the [official PyTorch instructions for version 2.1.2](https://pytorch.org/get-started/previous-versions/#v212).
 
-From the repository root, run the notebook cells from **Model experiment** through **Predicting both unseen photographs**, in order, in the same CUDA-backed Python kernel. The first model cell checks for CUDA. These cells independently load:
+From the project root, run the cells from **Model experiment** through **Predicting both unseen photographs** in order, in the same CUDA-enabled Python process. You can use a GPU notebook kernel or combine the Python code cells into one terminal run, as I did on Discovery. They load the saved masks and both region files directly, so the interactive preparation does not need to be repeated. The model downloads its pretrained weights on first use if they are not already cached.
 
-- `Barnacles/img1.png`, `img2.png`, `unseen_img1.png`, and `unseen_img2.png`;
-- `configs/regions.json` and `configs/test_regions.json`;
-- `data/processed/instances.npz`.
+The run writes figures, the threshold-search CSV, and JSON summaries to `outputs/`, replacing the corresponding files. Run the **Results** cell afterward to view them. Random seeds are fixed, but the saved predictions may not reproduce exactly across different hardware and library builds.
 
-The first model construction downloads the COCO-pretrained weights if they are not already cached. The experiment writes new PNG, CSV, and JSON results to `outputs/`, replacing the corresponding saved files. Run the **Results** cell afterward to display them. Seeds are fixed, but exact predictions may vary across hardware and library builds.
+### Revisiting the labels or selections
 
-To regenerate the annotations or change a counting region, run the earlier preparation and selection sections first. The selectors start from the committed coordinates. Changing a selection changes the region being counted and requires regenerating the dependent results.
+The earlier notebook sections explain how the labels were recovered and how the frame corners were selected. Their controls start from the recorded inspection position and saved corners. If you move the inspection crop, choose new blue sample pixels before recomputing the color bounds. If you change a counting region, regenerate the results that depend on it.
 
-## Recorded results
+## Where things are saved
 
-Validation uses **410 recovered reference instances after resizing**, down from 426 before resizing. Both counts exclude the single-pixel candidates removed by preprocessing. The metrics describe agreement with these provisional labels.
+| File or folder | What it contains |
+| --- | --- |
+| [`barnacle_experiment.ipynb`](barnacle_experiment.ipynb) | The full investigation, commented code, saved results, and conclusions. |
+| [`Barnacles/`](Barnacles/) | Photographs, contour images, and the supplied cropped overlay used for inspection. The close-up is an additional unlabeled example. |
+| [`configs/regions.json`](configs/regions.json) | The training/validation split, original dimensions, and selected frame corners. |
+| [`configs/test_regions.json`](configs/test_regions.json) | The selected regions for both unseen photographs. The close-up uses the whole image. |
+| [`data/processed/instances.npz`](data/processed/instances.npz) | Recovered label maps under `img1` and `img2`. Zero is background; positive IDs identify candidate interiors. |
+| [`outputs/`](outputs/) | The loss curve, validation search, prediction figures, counts, and inference settings from the Discovery run. |
+| [`requirements.txt`](requirements.txt) | Dependencies for installing the notebook in Python 3.10. |
 
-| Setting | Confidence | Mask threshold | Precision | Recall | F1 | Predicted count | Absolute count error |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Baseline | 0.5 | 0.5 | 0.091 | 0.137 | 0.109 | 614 | 204 |
-| Selected by F1 | 0.3 | 0.5 | 0.094 | 0.232 | 0.134 | 1,013 | 603 |
+## What I learned and would check next
 
-Lowering the confidence threshold improved recall and F1, while count error increased. Selecting the best instance F1 therefore did not select the closest total count. The complete search is in [`validation_tuning.csv`](outputs/validation_tuning.csv).
+The annotation recovery turned out to be part of the modeling problem itself. A region enclosed by blue pixels is a candidate label, and mistakes at that stage affect both training and evaluation. I would audit those masks before drawing stronger conclusions about the model.
 
-![Validation photograph, predicted masks, and overlay](outputs/validation_prediction.png)
+The loss curve and overlays also answer different questions. Falling training loss shows adaptation to the training example, while the close-up makes the limits of that adaptation visible. More varied object scales and independently annotated photographs would be useful next experiments.
 
-The unseen-image counts are **1,039** and **864**. Neither is a verified count because reference annotations are unavailable.
-
-![Unseen image 1 predictions](outputs/unseen_img1_prediction.png)
-
-![Additional close-up predictions](outputs/unseen_img2_prediction.png)
-
-## Interpretation, limitations, and learning
-
-The training loss decreased, and many predictions visually align with barnacles in the wider view. The close-up exposes fragmented detections on individual barnacles, suggesting sensitivity to changes in object scale and appearance. Viewpoint was not isolated as the cause.
-
-Validation agreement remains weak. There is only one training photograph and one validation photograph, and the recovered masks may contain missing, merged, or fragmented candidates. Threshold selection uses the same validation image on which the comparison is reported, so it is not an independent test estimate.
-
-The prototype requires human review before its counts can be trusted. The next steps would be to audit the reference masks, test processing resolutions and training-scale variation, and evaluate on additional independently annotated photographs. A practical evaluation would also measure whether reviewing predictions saves time over manual counting.
-
-The main lessons from the experiment are that annotation recovery is part of the modeling problem, lower training loss does not establish generalization, and instance-matching quality and total-count accuracy can favor different settings. Keeping the close-up failure case makes those limitations visible.
+For now, the counts need human review. With one training photograph and one validation photograph, this is an exploratory prototype. The validation image was also used to select the thresholds, so its metrics are not an independent test score. A practical follow-up would measure whether checking and correcting the predictions takes less time than counting manually.
