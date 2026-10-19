@@ -5,7 +5,12 @@ __pycache__/
 .ipynb_checkpoints/
 Barnacles_zip/
 archive/
-outputs/
+# Publish the experiment's figures and summaries, keeping large model files out.
+outputs/*
+!outputs/*.png
+!outputs/*.json
+!outputs/*.csv
+anaconda_projects/
 *.pth
 *.pt
 *.log

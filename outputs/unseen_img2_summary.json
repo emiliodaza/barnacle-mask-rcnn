@@ -1,0 +1,27 @@
+{
+  "image": "unseen_img2.png",
+  "predicted_count": 864,
+  "frame_corners": [
+    [
+      0,
+      0
+    ],
+    [
+      499,
+      0
+    ],
+    [
+      499,
+      499
+    ],
+    [
+      0,
+      499
+    ]
+  ],
+  "confidence_threshold": 0.3,
+  "mask_threshold": 0.5,
+  "short_side": 800,
+  "max_side": 1024,
+  "selection_metric": "instance F1 at mask IoU 0.5"
+}
